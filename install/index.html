@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="preload" as="font" type="font/woff2" href="fonts/pretendard-regular.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/pretendard-bold.woff2" crossorigin>
+</head>
+<body>
+<title>원장톡 설치하기 — 원장톡 사용 가이드</title>
+<meta name="description" content="원장톡 내려받기 · 실행 · 인증코드 넣기 — 설치 중에 뜨는 경고와 누를 곳을 실제 화면으로 안내합니다">
+<style>
+@font-face{font-family:"Pretendard";font-weight:1 400;font-display:swap;src:url(fonts/pretendard-regular.woff2) format("woff2");}
+@font-face{font-family:"Pretendard";font-weight:601 700;font-display:swap;src:url(fonts/pretendard-bold.woff2) format("woff2");}
+:root { --bg:#FFFFFF; --fg:#15141F; --dim:#5C5A70; --line:#E2E2EF; --code:#ECEBF5; --accent:#4F46E5; --chip:#EEEDFE;
+--sans:"Pretendard","Malgun Gothic",system-ui,sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#121120; --fg:#ECEBF5; --dim:#A3A1B8; --line:#2C2A40; --code:#1F1D31; --accent:#A49DFF; --chip:#2A2650; color-scheme:dark; } }
+:root[data-theme="dark"] { --bg:#121120; --fg:#ECEBF5; --dim:#A3A1B8; --line:#2C2A40; --code:#1F1D31; --accent:#A49DFF; --chip:#2A2650; color-scheme:dark; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.7 var(--sans); }
+.wrap { max-width:1264px; margin:0 auto; padding-inline:16px; padding-block:28px 64px; }
+header.pg { max-width:760px; margin-bottom:20px; }
+.eyebrow { font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); }
+h1 { font-size:26px; line-height:1.3; margin:4px 0 6px; text-wrap:balance; letter-spacing:-.01em; }
+header.pg p { margin:0; color:var(--dim); word-break:keep-all; }
+.gp { --p:#4F46E5; --p-h:#4338CA; --p-soft:#EEEDFE; --p-line:#C9C5FA; --tx:#15141F; --mut:#5C5A70; --faint:#8E8CA3;
+--ease:cubic-bezier(.65,0,.35,1); --pop:cubic-bezier(.2,.9,.25,1.05); color:var(--tx); }
+.gp-frame { border-radius:14px; overflow:hidden; background:#0f0e1a; box-shadow:0 1px 2px rgba(20,16,60,.10), 0 18px 50px -18px rgba(20,16,60,.45); }
+.gp-view { position:relative; overflow:hidden; background:#F8F8FC; }
+.gp-stage { position:absolute; left:0; top:0; width:1264px; height:761px; transform-origin:0 0; }
+.gp-view.moving .gp-stage { transition:transform .7s var(--ease); }
+.gp-host, .gp-lhost { display:block; position:absolute; inset:0; width:1264px; height:761px; overflow:hidden; pointer-events:none; z-index:0; }
+.gp-ov { position:absolute; inset:0; z-index:1; }
+.gp-spot { position:absolute; border-radius:12px; pointer-events:none;
+box-shadow:0 0 0 3px rgba(79,70,229,.55), 0 0 0 9999px rgba(18,16,38,.46);
+transition:left .6s var(--ease), top .6s var(--ease), width .6s var(--ease), height .6s var(--ease); }
+.gp-spot::after { content:""; position:absolute; inset:-3px; border-radius:inherit; border:2px solid var(--p); animation:gp-pulse 1.9s ease-out infinite; }
+@keyframes gp-pulse { 0% { transform:scale(1); opacity:.9; } 70% { transform:scale(1.045); opacity:0; } 100% { opacity:0; } }
+.gp-hit { position:absolute; border:0; border-radius:10px; background:transparent; cursor:pointer; padding:0; }
+.gp-hit:hover, .gp-hit:focus-visible { box-shadow:0 0 0 2px var(--hot, #FF9F1C); outline:0; }
+.gp-hit.on { box-shadow:0 0 0 2px #A49DFF; }
+.gp-cur { position:absolute; left:0; top:0; width:26px; height:26px; pointer-events:none; z-index:8; filter:drop-shadow(0 2px 3px rgba(0,0,0,.28)); transition:transform .75s var(--ease), opacity .2s; }
+.gp { --hot:#FF9F1C; --hot-ink:#B45309; --hot-soft:rgba(255,159,28,.30); }
+.gp.await .gp-cur, .gp.await .gp-lcur { opacity:0; }
+.gp-spot { z-index:6; }
+.gp-hits .gp-hit { z-index:7; }
+.gp-hit.click { border:0; border-radius:10px; background:transparent; }
+.gp-hit.click:hover, .gp-hit.click:focus-visible { box-shadow:0 0 0 2px var(--hot); outline:0; }
+.gp-tap { position:absolute; width:0; height:0; pointer-events:none; z-index:7; }
+.gp-tap::before, .gp-tap::after { content:""; position:absolute; left:-16px; top:-16px; width:32px; height:32px; border-radius:50%;
+border:3px solid var(--hot); animation:gp-tap 1.2s ease-out infinite; }
+.gp-tap::after { animation-delay:.6s; }
+@keyframes gp-tap { 0% { transform:scale(.35); opacity:1; } 100% { transform:scale(1.9); opacity:0; } }
+.gp-tip.nudge, .gp-mtip.nudge .gp-in { animation:gp-shake .45s ease-in-out; }
+@keyframes gp-shake { 20%, 60% { translate:-7px 0; } 40%, 80% { translate:7px 0; } }
+.gp-wait.click { color:var(--hot-ink); font-weight:650; font-size:13px; display:flex; align-items:center; gap:6px; }
+.gp-wait.click::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--hot); box-shadow:0 0 0 3px var(--hot-soft); }
+.gp-now.wait.click { color:var(--hot); }
+.gp-rip { position:absolute; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; pointer-events:none; z-index:7;
+background:radial-gradient(circle, rgba(79,70,229,.45) 0%, rgba(79,70,229,.18) 55%, transparent 70%); transform:scale(0); opacity:0; }
+.gp-rip.go { animation:gp-rip .6s ease-out; }
+@keyframes gp-rip { 0% { transform:scale(.2); opacity:1; } 100% { transform:scale(1.5); opacity:0; } }
+.gp-tip { position:absolute; width:318px; z-index:9; background:#fff; border-radius:16px; padding:16px 18px 14px; border:1px solid rgba(79,70,229,.16);
+box-shadow:0 1px 2px rgba(20,16,60,.08), 0 10px 28px rgba(20,16,60,.16), 0 28px 56px -16px rgba(79,70,229,.32);
+opacity:0; transform:translateY(6px) scale(.97); transition:opacity .28s, transform .38s var(--pop); pointer-events:none; }
+.gp-tip.show { opacity:1; transform:none; pointer-events:auto; }
+.gp-tip::before { content:""; position:absolute; width:14px; height:14px; background:#fff; border:1px solid rgba(79,70,229,.16); transform:rotate(45deg); }
+.gp-tip[data-side="bottom"]::before { top:-8px; left:var(--ax,40px); border-right:0; border-bottom:0; }
+.gp-tip[data-side="top"]::before    { bottom:-8px; left:var(--ax,40px); border-left:0; border-top:0; }
+.gp-tip[data-side="right"]::before  { left:-8px; top:var(--ay,28px); border-right:0; border-top:0; }
+.gp-tip[data-side="left"]::before   { right:-8px; top:var(--ay,28px); border-left:0; border-bottom:0; }
+.gp-tip[data-side="inside"]::before { display:none; }
+.gp-head { display:flex; align-items:center; gap:8px; }
+.gp-no { font-size:12px; font-weight:700; color:var(--p-h); background:var(--p-soft); padding:2px 9px; border-radius:99px; letter-spacing:.02em; }
+.gp-ch { font-size:12.5px; color:var(--faint); font-weight:600; }
+.gp-tip h4, .gp-mtip h4 { margin:9px 0 5px; font-size:17.5px; line-height:1.38; font-weight:700; letter-spacing:-.01em; word-break:keep-all; }
+.gp-tip p, .gp-mtip p { margin:0; font-size:14.5px; line-height:1.62; color:var(--mut); word-break:keep-all; }
+.gp .k { color:var(--p-h); background:var(--p-soft); padding:1px 7px; border-radius:6px; font-weight:650; white-space:nowrap; }
+.gp-tip b, .gp-mtip b { color:var(--tx); font-weight:650; }
+.gp-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:13px; }
+.gp-dots { display:flex; gap:5px; flex-wrap:wrap; }
+.gp-dots i { width:6px; height:6px; border-radius:99px; background:#DCDAEB; transition:width .3s var(--ease), background .3s; }
+.gp-dots i.on { width:18px; background:var(--p); } .gp-dots i.done { background:var(--p-line); }
+.gp-act { font-size:12px; font-weight:650; color:var(--mut); display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.gp-act svg { width:14px; height:14px; }
+.gp-opts { display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; }
+.gp-opts button { font:inherit; font-size:14px; font-weight:650; padding:8px 14px; border-radius:10px; cursor:pointer;
+border:1.5px solid var(--p-line); background:#fff; color:var(--p-h); transition:background .15s, border-color .15s; }
+.gp-opts button:hover, .gp-opts button:focus-visible { background:var(--p-soft); border-color:var(--p); outline:0; }
+.gp-opts button.on { background:var(--p); border-color:var(--p); color:#fff; }
+.gp-opts button.hint { border-color:var(--hot); box-shadow:0 0 0 3px var(--hot-soft); }
+.gp-wait { font-size:12px; color:var(--faint); margin-top:8px; }
+.gp-fp { position:absolute; left:300px; top:150px; width:560px; height:400px; z-index:5; background:#fff; border-radius:10px;
+border:1px solid #D5D3E2; box-shadow:0 24px 60px rgba(15,14,30,.35); display:flex; flex-direction:column; overflow:hidden;
+font:13px/1.5 var(--sans); color:#1E1D2A; opacity:0; transform:scale(.97); transition:opacity .2s, transform .25s var(--pop); pointer-events:none; }
+.gp-fp.show { opacity:1; transform:none; }
+.fp-bar { height:36px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#F3F2F8; font-weight:650; }
+.fp-addr { margin:8px 12px; padding:5px 10px; border:1px solid #DDDBE8; border-radius:6px; color:#5C5A70; font-size:12.5px; }
+.fp-body { flex:1; display:flex; min-height:0; border-top:1px solid #EEEDF5; border-bottom:1px solid #EEEDF5; }
+.fp-nav { width:130px; padding:8px; background:#FAFAFD; border-right:1px solid #EEEDF5; color:#5C5A70; }
+.fp-nav div { padding:5px 8px; border-radius:6px; } .fp-nav .on { background:#E9E8F6; color:#1E1D2A; font-weight:600; }
+.fp-list { flex:1; padding:8px; }
+.fp-row { display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:6px; }
+.fp-row svg { width:18px; height:18px; flex:none; }
+.fp-row.sel { background:#E3E1FB; outline:1px solid #B9B4F5; }
+.fp-row .sz { margin-left:auto; color:#8E8CA3; font-size:12px; }
+.fp-foot { display:flex; align-items:center; gap:8px; padding:10px 12px; }
+.fp-foot .lbl { color:#5C5A70; white-space:nowrap; }
+.fp-name { flex:1; min-width:0; height:30px; border:1px solid #CFCDE0; border-radius:6px; padding:0 9px; display:flex; align-items:center; overflow:hidden; white-space:nowrap; }
+.fp-btn { height:30px; padding:0 16px; border-radius:6px; display:flex; align-items:center; border:1px solid #CFCDE0; background:#fff; font-weight:600; }
+.fp-btn.pri { background:#3F3D56; border-color:#3F3D56; color:#fff; }
+.gp-sh { position:absolute; left:150px; top:120px; width:690px; height:410px; z-index:5; background:#fff; border-radius:8px;
+border:1px solid #CFD8D2; box-shadow:0 24px 60px rgba(15,14,30,.35); display:flex; flex-direction:column; overflow:hidden;
+font:13px/1.4 var(--sans); color:#1E1D2A; opacity:0; transform:scale(.97); transition:opacity .2s, transform .25s var(--pop); pointer-events:none; }
+.gp-sh.show { opacity:1; transform:none; }
+.sh-bar { height:34px; display:flex; align-items:center; gap:10px; padding:0 12px; background:#1F7A4D; color:#fff; font-weight:600; }
+.sh-bar b { width:20px; height:20px; border-radius:4px; background:#fff; color:#1F7A4D; display:grid; place-items:center; font-size:12px; }
+.sh-rib { display:flex; gap:18px; padding:7px 14px; background:#F3F6F4; border-bottom:1px solid #DDE5E0; color:#4A5A50; font-size:12px; }
+.sh-wrap { flex:1; overflow:hidden; padding:0; }
+.sh-grid { border-collapse:collapse; table-layout:fixed; width:100%; }
+.sh-grid th, .sh-grid td { border:1px solid #DADFDC; height:30px; padding:0 8px; white-space:nowrap; overflow:hidden; text-overflow:clip; text-align:left; }
+.sh-grid th { background:#F1F3F2; color:#5F6B64; font-weight:500; font-size:12px; text-align:center; }
+.sh-grid th.rn { width:36px; }
+.sh-grid tr.r1 td { font-weight:700; font-size:14px; }
+.sh-grid tr.r2 td { color:#6B6880; font-size:12px; white-space:normal; height:44px; line-height:1.35; }
+.sh-grid td.hd { background:#E9F3EC; font-weight:700; }
+.sh-grid td.fill { background:#FFFBEA; }
+.sh-grid td.typing::after { content:''; display:inline-block; width:1px; height:14px; margin-left:1px; background:#1E1D2A; vertical-align:-2px; }
+.sh-tabs { display:flex; gap:2px; padding:4px 12px; background:#F3F6F4; border-top:1px solid #DDE5E0; font-size:12px; }
+.sh-tabs .on { background:#fff; padding:2px 14px; border-bottom:2px solid #1F7A4D; color:#1F7A4D; font-weight:600; }
+.gp-bar { background:#14132a; color:#e9e8f5; padding:10px 14px 12px; display:flex; flex-direction:column; gap:8px; }
+.gp-track { position:relative; height:18px; display:flex; gap:3px; align-items:center; cursor:pointer; touch-action:none; }
+.gp-seg { position:relative; height:5px; flex:var(--d) 1 0; background:rgba(255,255,255,.18); border-radius:3px; overflow:hidden; transition:height .15s; }
+.gp-seg.tent { background:repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 4px, transparent 4px 7px); }
+.gp-seg.ch::after { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:#FFD166; }
+.gp-track:hover .gp-seg { height:8px; }
+.gp-seg b { position:absolute; inset:0; width:0; background:linear-gradient(90deg,#7C74F2,#A49DFF); }
+.gp-knob { position:absolute; top:50%; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%; background:#fff; box-shadow:0 0 0 4px rgba(124,116,242,.35); pointer-events:none; }
+.gp-hover { position:absolute; bottom:24px; transform:translateX(-50%); background:#fff; color:#15141F; font-size:12px; font-weight:600;
+padding:4px 9px; border-radius:7px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .15s; box-shadow:0 4px 14px rgba(0,0,0,.3); }
+.gp-track:hover .gp-hover { opacity:1; }
+.gp-ctl { display:flex; align-items:center; gap:6px; font-size:13px; }
+.gp-ctl button { background:none; border:0; color:inherit; cursor:pointer; width:32px; height:30px; border-radius:8px; display:grid; place-items:center; font:inherit; }
+.gp-ctl button:hover { background:rgba(255,255,255,.1); }
+.gp-ctl button:focus-visible { outline:2px solid #A49DFF; }
+.gp-ctl svg { width:18px; height:18px; fill:currentColor; }
+.gp-time { white-space:nowrap; font-variant-numeric:tabular-nums; opacity:.8; margin-left:4px; }
+.gp-now { margin-left:auto; opacity:.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45%; }
+.gp-now.wait { color:#FFD166; opacity:1; font-weight:650; }
+.gp-ctl .gp-spd { width:auto; padding:0 9px; font-weight:700; font-size:12px; }
+@media (max-width:520px) { .gp-now { display:none; } .gp-ctl .gp-spd { margin-left:auto; } }
+.gp-mtip { display:none; background:#fff; padding:14px 14px 16px; border-top:1px solid #E2E2EF; }
+.gp.mfit .gp-mtip { display:block; } .gp.mfit .gp-tip { display:none; }
+.gp-mtip .gp-in { transition:opacity .25s, transform .35s var(--pop); opacity:0; transform:translateY(4px); }
+.gp-mtip.show .gp-in { opacity:1; transform:none; }
+.gp-mtip p { min-height:4.86em; }
+.gp-loupe { position:relative; height:150px; border-radius:12px; overflow:hidden; background:#F8F8FC; border:1px solid #E2E2EF; margin-bottom:12px; }
+.gp-lstage { position:absolute; left:0; top:0; width:1264px; height:761px; transform-origin:0 0; transition:transform .6s var(--ease); }
+.gp-lspot { position:absolute; border-radius:12px; box-shadow:0 0 0 3px #4F46E5, 0 0 0 9px rgba(79,70,229,.16);
+transition:left .6s var(--ease), top .6s var(--ease), width .6s var(--ease), height .6s var(--ease); }
+.gp-lcur { position:absolute; left:0; top:0; width:30px; height:30px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.28)); transition:transform .6s var(--ease); z-index:8; }
+.gp-lzoom { position:absolute; left:8px; top:8px; display:flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:#fff;
+background:rgba(21,20,31,.7); padding:2px 8px 2px 6px; border-radius:7px; z-index:9; }
+.gp-lzoom svg { width:12px; height:12px; }
+.gt-h { font-size:16px; margin:24px 0 0; } .gt-h span { color:var(--dim); font-weight:400; font-size:14px; }
+.gt { margin:12px 0 0; padding:0; list-style:none; counter-reset:s; }
+.gt li { counter-increment:s; display:flex; gap:12px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:background .2s; word-break:keep-all; }
+.gt li::before { content:counters(s, "-"); flex:none; min-width:24px; height:24px; padding:0 6px; border-radius:99px; display:grid; place-items:center;
+font-size:12px; font-weight:700; background:var(--code); color:var(--dim); margin-top:2px; font-variant-numeric:tabular-nums; }
+.gt li:hover { background:var(--code); }
+.gt li.on { background:color-mix(in srgb, var(--accent) 10%, transparent); } .gt li.on::before { background:var(--accent); color:var(--bg); }
+.gt li > div { min-width:0; flex:1; }
+.gt b.t { display:block; } .gt .x { color:var(--dim); font-size:14px; }
+.gt .k { color:var(--accent); font-weight:650; }
+.gt li.choice { cursor:default; flex-wrap:wrap; }
+.gt-br { margin-top:10px; border:1px solid var(--line); border-radius:12px; padding:8px; }
+.gt-tabs { display:flex; flex-wrap:wrap; gap:6px; padding:2px 2px 6px; }
+.gt-tabs button { font:inherit; font-size:13px; font-weight:650; padding:5px 12px; border-radius:99px; border:1px solid var(--line); background:var(--bg); color:var(--dim); cursor:pointer; }
+.gt-tabs button[aria-selected="true"] { background:var(--accent); border-color:var(--accent); color:var(--bg); }
+.gt-br .gt { margin:0; }
+.gt-none { color:var(--dim); font-size:14px; padding:8px 12px; }
+.crumb { display:flex; align-items:center; gap:8px; margin:-8px 0 10px; font-size:13px; }
+.crumb .home { color:var(--accent); font-weight:650; text-decoration:none; padding:6px 10px 6px 0; }
+.crumb .cat { color:var(--dim); padding-left:10px; border-left:1px solid var(--line); }
+.below { max-width:960px; margin-top:22px; }
+.sec-h { font-size:17px; margin:28px 0 10px; letter-spacing:-.01em; }
+.gnext { display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:14px; background:var(--accent); color:#fff; text-decoration:none; }
+.gnext .l { font-size:12.5px; opacity:.85; white-space:nowrap; } .gnext .t { font-weight:700; flex:1; min-width:0; }
+.gnext .ar { font-size:22px; line-height:1; }
+.rel-list { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding:2px 2px 8px; margin:0 -16px; padding-inline:16px; scroll-padding-inline:16px; scrollbar-width:none; }
+.rel-list::-webkit-scrollbar { display:none; }
+.rel-list .gcard { flex:0 0 78%; scroll-snap-align:start; }
+@media (min-width:720px) { .rel-list { display:grid; grid-template-columns:repeat(3, 1fr); overflow:visible; margin:0; padding:0; } .rel-list .gcard { flex:auto; } }
+.gcard { display:flex; flex-direction:column; gap:4px; padding:14px 16px; border-radius:14px; background:var(--bg); border:1px solid var(--line);
+color:var(--fg); text-decoration:none; word-break:keep-all; transition:border-color .2s, transform .2s; }
+.gcard:hover { border-color:var(--accent); }
+.gcard:active { transform:scale(.99); }
+.gc-cat { font-size:12px; font-weight:700; color:var(--accent); }
+.gc-t { font-weight:700; font-size:15.5px; line-height:1.4; }
+.gc-b { font-size:13.5px; color:var(--dim); line-height:1.55; }
+.gc-m { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.gc-m span { font-size:12px; color:var(--dim); background:var(--code); padding:2px 8px; border-radius:99px; }
+.faq-list { display:flex; flex-direction:column; gap:8px; }
+.faq-card { border:1px solid var(--line); border-radius:12px; background:var(--bg); }
+.faq-card summary { list-style:none; cursor:pointer; padding:13px 44px 13px 16px; font-weight:650; position:relative; word-break:keep-all; }
+.faq-card summary::-webkit-details-marker { display:none; }
+.faq-card summary::after { content:'+'; position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:20px; color:var(--accent); font-weight:400; }
+.faq-card[open] summary::after { content:'−'; }
+.faq-card p { margin:0; padding:0 16px 14px; color:var(--dim); font-size:14.5px; word-break:keep-all; }
+.faq-card .k, .gt .k { color:var(--accent); font-weight:650; }
+@media (max-width:719px) { .wrap { padding-block:16px 48px; } h1 { font-size:22px; } header.pg { margin-bottom:14px; } }
+.fb { margin-top:32px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; }
+.fb > div { min-width:0; background:var(--code); border-radius:14px; padding:16px 18px; word-break:keep-all; }
+.fb h2 { font-size:15px; margin:0 0 6px; }
+.fb ul { margin:0; padding-left:18px; color:var(--dim); font-size:14px; }
+.fb b { color:var(--fg); }
+.fb .chip { color:var(--accent); background:var(--chip); padding:1px 7px; border-radius:6px; font-weight:650; }
+@media (prefers-reduced-motion: reduce) {
+.gp-spot, .gp-cur, .gp-view.moving .gp-stage, .gp-tip, .gp-lstage, .gp-lspot, .gp-lcur, .gp-fp, .gp-sh, .gp-mk { transition:none !important; }
+.gp-spot::after, .gp-rip.go { animation:none !important; }
+.gp-tap::before, .gp-tip.nudge, .gp-mtip.nudge .gp-in, .gp-wait.click::before { animation:none !important; }
+.gp-tap::before { transform:scale(1); opacity:1; }
+.gp-tap::after { display:none; }
+}
+.gp-mk { position:absolute; z-index:5; opacity:0; transform:scale(.97); transition:opacity .2s, transform .25s var(--pop); pointer-events:none;
+font:13px/1.5 var(--sans); color:#1E1D2A; }
+.gp-mk.show { opacity:1; transform:none; }
+.gp-mk.win { background:#fff; border:1px solid #D5D3E2; border-radius:8px; box-shadow:0 24px 60px rgba(15,14,30,.35); display:flex; flex-direction:column; overflow:hidden; }
+.mk-title { height:32px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#F3F2F8; font-size:12.5px; }
+.mk-head { padding:12px 18px; border-bottom:1px solid #EEEDF5; }
+.mk-head .t { font-weight:700; } .mk-head .s { color:#6B6880; font-size:12.5px; margin-top:2px; }
+.mk-body { flex:1; padding:14px 22px; overflow:hidden; } .mk-body p { margin:0 0 8px; color:#3F3D56; }
+.mk-field { margin-top:10px; } .mk-field label { display:block; font-size:12.5px; color:#5C5A70; margin-bottom:4px; }
+.mk-field .in { height:30px; border:1px solid #9C98C9; border-radius:4px; padding:0 9px; display:flex; align-items:center; font-family:var(--mono, monospace); }
+.mk-checks { margin-top:8px; } .mk-checks .ck { display:flex; align-items:center; gap:8px; padding:4px 0; }
+.mk-checks i { width:14px; height:14px; border:1px solid #8E8CA3; border-radius:3px; display:inline-block; }
+.mk-checks .on i { background:#3F3D56; border-color:#3F3D56; box-shadow:inset 0 0 0 2px #fff; }
+.mk-btns { display:flex; justify-content:flex-end; gap:8px; padding:10px 14px; border-top:1px solid #EEEDF5; background:#FAFAFD; }
+.mk-btns .b { min-width:76px; height:28px; padding:0 12px; border:1px solid #CFCDE0; border-radius:4px; display:flex; align-items:center; justify-content:center; background:#fff; }
+.mk-btns .b.pri { border-color:#3F3D56; box-shadow:inset 0 0 0 1px #3F3D56; font-weight:600; }
+.gp-mk.tray { display:flex; flex-direction:column; justify-content:flex-end; gap:10px; }
+.mk-menu { align-self:flex-end; min-width:160px; background:#fff; border:1px solid #D5D3E2; border-radius:8px; box-shadow:0 16px 40px rgba(15,14,30,.3); padding:6px; }
+.mk-mi { padding:7px 14px; border-radius:5px; } .mk-mi.on { background:#E9E8F6; font-weight:600; }
+.mk-bar { height:44px; background:#1F1E2E; border-radius:8px; display:flex; align-items:center; justify-content:flex-end; gap:14px; padding:0 14px; color:#fff; font-size:12px; }
+.mk-ic { width:22px; height:22px; border-radius:6px; background:#5B50E6; display:grid; place-items:center; font-weight:700; font-size:12px; outline:2px solid #FF9F1C; outline-offset:2px; }
+.top { position:sticky; top:0; z-index:20; height:52px; display:flex; align-items:center; padding:0 16px;
+background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+.brand { display:flex; align-items:center; gap:8px; color:var(--fg); text-decoration:none; font-weight:700; }
+.brand b { color:var(--accent); }
+.logo { width:26px; height:26px; flex:none; display:block; }
+.wk { max-width:1040px; margin:0 auto; padding:0 16px 56px; }
+.hero { padding:22px 0 8px; }
+.hero h1 { font-size:24px; margin:0 0 6px; }
+.hero p { margin:0 0 14px; color:var(--dim); word-break:keep-all; }
+.search { display:flex; align-items:center; gap:10px; height:48px; padding:0 14px; border-radius:14px; background:var(--bg);
+border:1.5px solid var(--line); color:var(--dim); }
+.search:focus-within { border-color:var(--accent); }
+.search svg { width:20px; height:20px; flex:none; }
+.search input { flex:1; min-width:0; border:0; outline:0; background:none; font:inherit; font-size:16px; color:var(--fg); }
+.chips { position:sticky; top:52px; z-index:10; display:flex; gap:8px; overflow-x:auto; padding:10px 16px; margin:8px -16px 0;
+background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(10px); scrollbar-width:none; }
+.chips::-webkit-scrollbar { display:none; }
+.chips a { flex:none; font-size:14px; font-weight:650; padding:7px 14px; border-radius:99px; text-decoration:none; color:var(--dim);
+background:var(--code); white-space:nowrap; }
+.chips a { display:flex; align-items:center; gap:6px; }
+.chips a i { width:8px; height:8px; border-radius:50%; background:var(--tone, var(--accent)); flex:none; }
+.chips a.on { background:var(--tone, var(--accent)); color:#fff; }
+.chips a.on i { background:#fff; }
+section[id] { scroll-margin-top:110px; }
+.cards { display:grid; grid-template-columns:1fr; gap:10px; }
+@media (min-width:640px) { .cards { grid-template-columns:repeat(2, 1fr); } }
+@media (min-width:960px) { .cards { grid-template-columns:repeat(3, 1fr); }
+.cards:has(> .gcard:nth-child(4):last-child) { grid-template-columns:repeat(2, 1fr); } }
+.cat, .start { --tone:var(--accent); margin-top:20px; padding:18px 16px 16px; border-radius:22px;
+background:color-mix(in srgb, var(--tone) 6%, var(--bg)); border:1px solid color-mix(in srgb, var(--tone) 16%, transparent); overflow:hidden; }
+.start { margin-top:14px; }
+.cat-h { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.cat-ic { width:46px; height:46px; flex:none; border-radius:14px; background:var(--tone); color:#fff; display:grid; place-items:center;
+box-shadow:0 8px 18px -8px color-mix(in srgb, var(--tone) 75%, transparent); }
+.cat-ic svg { width:25px; height:25px; }
+.cat-t { margin:0; font-size:20px; line-height:1.3; letter-spacing:-.015em; display:flex; align-items:center; flex-wrap:wrap; gap:8px; word-break:keep-all; }
+.cat-n { font-size:12px; font-weight:700; color:var(--tone); background:color-mix(in srgb, var(--tone) 13%, var(--bg)); padding:2px 9px; border-radius:99px; }
+.cat-d { margin:3px 0 0; color:var(--dim); font-size:14px; word-break:keep-all; }
+.cat .gcard { border-color:color-mix(in srgb, var(--tone) 18%, var(--line)); }
+.cat .gcard:hover { border-color:var(--tone); }
+.cat .gc-cat { display:none; }
+.cat .gc-m span { background:color-mix(in srgb, var(--tone) 9%, var(--bg)); }
+@media (max-width:639px) { .cat, .start { margin-inline:-6px; padding:16px 14px 14px; border-radius:20px; } .cat-t { font-size:19px; } }
+.path { list-style:none; margin:0; padding:0; display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; margin-inline:-14px; padding:2px 14px 6px; scroll-padding-inline:14px; scrollbar-width:none; }
+.path::-webkit-scrollbar { display:none; }
+.path li { flex:0 0 62%; scroll-snap-align:start; }
+@media (min-width:720px) { .path { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; overflow:visible; margin:0; padding:0; } }
+.path a { display:flex; flex-direction:column; gap:4px; height:100%; padding:14px; border-radius:14px; text-decoration:none; color:var(--fg);
+background:var(--bg); border:1px solid color-mix(in srgb, var(--tone) 22%, transparent); word-break:keep-all; }
+.path .n { width:26px; height:26px; border-radius:99px; background:var(--tone); color:#fff; display:grid; place-items:center; font-weight:700; font-size:13px; }
+.path .t { font-weight:700; line-height:1.4; }
+.path .m { font-size:12.5px; color:var(--dim); }
+.sub-h { font-size:15px; margin:22px 0 10px; }
+.faq-card .from { display:block; padding:0 16px 14px; font-size:13px; }
+.faq-card .from a { color:var(--accent); font-weight:650; text-decoration:none; }
+.none { color:var(--dim); padding:8px 0; }
+.foot { margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--dim); font-size:13px; }
+.ins { max-width:760px; margin:0 auto; padding:18px 16px 64px; }
+.ins .crumb { margin:0 0 6px; }
+.ins .crumb .cat { margin:0; padding:0 0 0 10px; border:0; border-left:1px solid var(--line); border-radius:0; background:none; overflow:visible; }
+.ins .hero { padding:4px 0 6px; }
+.ins .hero h1 { font-size:27px; margin:4px 0 6px; }
+.ins .hero p { margin:0 0 14px; color:var(--dim); word-break:keep-all; }
+.ins code { font-family:var(--sans); font-size:.92em; background:var(--code); padding:1px 6px; border-radius:6px; word-break:break-all; }
+.ins .k { color:var(--accent); font-weight:700; }
+.road { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+.road a { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:14px; text-decoration:none;
+color:var(--fg); background:var(--code); font-weight:650; font-size:14px; text-align:center; word-break:keep-all; }
+.road span { width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px; font-weight:700; }
+.safe { --ok:#16A34A; margin-top:18px; padding:18px 18px 14px; border-radius:20px;
+background:color-mix(in srgb, var(--ok) 7%, var(--bg)); border:1px solid color-mix(in srgb, var(--ok) 28%, transparent); }
+.safe-h { display:flex; align-items:center; gap:12px; }
+.safe-ic { width:44px; height:44px; flex:none; border-radius:14px; background:var(--ok); color:var(--ok); display:grid; place-items:center; }
+.safe-ic svg { width:26px; height:26px; }
+.safe-ic svg path:first-child { fill:#fff; opacity:.22; }
+.safe-ic svg path:last-child { stroke:#fff; }
+.safe h2 { margin:0; font-size:20px; line-height:1.35; letter-spacing:-.015em; word-break:keep-all; }
+.safe-lead { margin:12px 0 6px; word-break:keep-all; }
+.safe ul { margin:0; padding-left:20px; }
+.safe li { margin:6px 0; word-break:keep-all; }
+.safe li b { color:var(--fg); }
+.stage { margin-top:34px; scroll-margin-top:64px; }
+.stage-h { display:flex; align-items:center; gap:10px; margin:0; font-size:22px; letter-spacing:-.015em; }
+.stage-h .no { width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:17px; flex:none; }
+.stage-d { margin:8px 0 14px; color:var(--dim); word-break:keep-all; }
+.tabs > input { position:absolute; opacity:0; pointer-events:none; }
+.tab-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:5px; border-radius:14px; background:var(--code); margin-bottom:14px; }
+.tab-row label { text-align:center; padding:10px 6px; border-radius:10px; cursor:pointer; font-weight:650; color:var(--dim); word-break:keep-all; }
+#br-edge:checked ~ .tab-row label[for="br-edge"], #br-chrome:checked ~ .tab-row label[for="br-chrome"] { background:var(--bg); color:var(--fg); box-shadow:0 1px 3px rgba(20,16,60,.12); }
+#br-edge:focus-visible ~ .tab-row label[for="br-edge"], #br-chrome:focus-visible ~ .tab-row label[for="br-chrome"] { outline:2px solid var(--accent); outline-offset:2px; }
+.pane { display:none; }
+#br-edge:checked ~ .pane-edge, #br-chrome:checked ~ .pane-chrome { display:block; }
+.st { list-style:none; margin:0; padding:0; counter-reset:st; }
+.st > li { counter-increment:st; position:relative; padding:0 0 22px 40px; }
+.st > li::before { content:counter(st); position:absolute; left:0; top:1px; width:28px; height:28px; border-radius:50%;
+border:2px solid var(--accent); color:var(--accent); display:grid; place-items:center; font-weight:700; font-size:14px; background:var(--bg); }
+.st > li:not(:last-child)::after { content:''; position:absolute; left:13px; top:34px; bottom:6px; width:2px; background:var(--line); }
+.st h3 { margin:0 0 4px; font-size:17px; line-height:1.45; word-break:keep-all; }
+.st p { margin:0 0 10px; color:var(--dim); word-break:keep-all; }
+.st p b { color:var(--fg); }
+.no-go { position:relative; padding:8px 12px 8px 34px; border-radius:10px; font-size:14px;
+background:color-mix(in srgb, #DC2626 7%, var(--bg)); color:var(--fg) !important; }
+.no-go::before { content:'!'; position:absolute; left:10px; top:9px; width:16px; height:16px; border-radius:50%; background:#DC2626; color:#fff;
+font-size:11px; font-weight:800; display:grid; place-items:center; }
+.tip { margin:4px 0 0; padding:10px 14px; border-radius:12px; background:var(--code); color:var(--dim); font-size:14px; word-break:keep-all; }
+.shot { margin:6px 0 12px; }
+.shot .ph { position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#fff;
+box-shadow:0 1px 2px rgba(20,16,60,.06), 0 10px 28px -14px rgba(20,16,60,.30); }
+.shot img { display:block; width:100%; height:auto; }
+.shot .ring { position:absolute; border:3px solid #FF9F1C; border-radius:9px; box-shadow:0 0 0 4px rgba(255,159,28,.28);
+animation:ring 1.6s ease-in-out infinite; pointer-events:none; }
+@keyframes ring { 50% { box-shadow:0 0 0 9px rgba(255,159,28,.10); } }
+@media (prefers-reduced-motion: reduce) { .shot .ring { animation:none; } }
+.ins .below { margin-top:36px; }
+.ins .foot { margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--dim); font-size:13px; }
+@media (min-width:640px) { .ins .hero h1 { font-size:30px; } .st > li { padding-left:46px; } }
+</style>
+
+<header class="top">
+  <a class="brand" href="../index.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="logo" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#FEE500"/><g transform="translate(50.58 34.59) scale(4.1086)"><path d="M30.5,9 C13,10.5 7,23 7,42 C7,60 13,73.5 30,75 L41,75 C37.5,84 31,90.5 24,96 C39,93 51,85 57.5,75 L70,75 C87.5,73 93,60 93,41.5 C93,22 86.5,9.5 69.5,8.8 C56.5,8 43,8.2 30.5,9 Z" fill="#3C1E1E" stroke="#3C1E1E" stroke-width="10" stroke-linejoin="round"/><circle cx="31" cy="41.5" r="7.4" fill="#FEE500"/><circle cx="50.5" cy="42.2" r="7.4" fill="#FEE500"/><circle cx="70" cy="41.5" r="7.4" fill="#FEE500"/></g></svg>원장톡 <b>사용 가이드</b></a>
+</header>
+<main class="ins">
+  <nav class="crumb"><a class="home" href="../index.html">‹ 가이드 목록</a><span class="cat">처음 시작</span></nav>
+
+  <section class="hero">
+    <h1>원장톡 설치하기</h1>
+    <p>내려받고, 실행하고, 인증코드를 넣으면 끝이에요. 처음 한 번만 하면 돼요.</p>
+    <ol class="road">
+      <li><a href="#dl"><span>1</span>내려받기</a></li>
+      <li><a href="#run"><span>2</span>실행하기</a></li>
+      <li><a href="#key"><span>3</span>인증코드 넣기</a></li>
+    </ol>
+  </section>
+
+  
+  <section class="safe" id="safe">
+    <div class="safe-h">
+      <span class="safe-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="currentColor"/><path d="M8.2 12.2l2.6 2.6 5-5.2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <h2>설치 중에 경고가 떠도 괜찮아요</h2>
+    </div>
+    <p class="safe-lead">원장톡을 처음 받으면 브라우저와 윈도우가 「일반적으로 다운로드되지 않습니다」, 「Windows의 PC 보호」 같은 경고를 띄울 수 있어요.</p>
+    <ul>
+      <li><b>바이러스가 발견됐다는 뜻이 아니에요.</b> 아직 많은 사람이 받지 않은 새 프로그램이면, 한 번 더 확인하라고 띄우는 안내예요.</li>
+      <li><b>「게시자: 알 수 없음」</b> 은 프로그램에 회사 인증 서명이 아직 붙어 있지 않아서 나오는 표시예요.</li>
+      <li><b>확인할 것은 하나예요.</b> 원장톡에서 안내한 다운로드 링크로 받은 파일(<code>wjtok-setup-판번호.exe</code>)인지 봐 주세요. 다른 곳에서 받은 파일이라면 실행하지 마세요.</li>
+    </ul>
+  </section>
+
+  
+  <section class="stage" id="dl">
+    <h2 class="stage-h"><span class="no">1</span>내려받기</h2>
+    <p class="stage-d">받는 브라우저에 따라 경고 모양이 달라요. 쓰시는 브라우저를 골라 주세요.</p>
+    <div class="tabs">
+      
+      <input type="radio" name="br" id="br-chrome" checked>
+      <input type="radio" name="br" id="br-edge">
+      <div class="tab-row" role="tablist">
+        <label for="br-chrome">크롬 · 웨일 등</label>
+        <label for="br-edge">Microsoft Edge</label>
+      </div>
+
+      <div class="pane pane-edge">
+        <ol class="st">
+          <li>
+            <h3>「일반적으로 다운로드되지 않습니다」 가 떠요</h3>
+            <p>오른쪽 위 다운로드 칸에 이렇게 나오면 받기가 잠깐 멈춘 상태예요. 위 안심 안내처럼 새 프로그램이라 뜨는 경고예요.</p>
+            <figure class="shot"><div class="ph"><img src="img/edge-e02-warning.webp" width="404" height="200" alt="Edge 다운로드 칸의 일반적으로 다운로드되지 않습니다 경고" loading="lazy" decoding="async"><i class="ring" style="left:1.73%;top:23.50%;width:87.87%;height:51.00%"></i></div></figure>
+          </li>
+          <li>
+            <h3>경고에 마우스를 올리고 <b class="k">…</b> 를 누르세요</h3>
+            <p>마우스를 올려야 오른쪽에 휴지통과 <b class="k">…</b> 단추가 보여요.</p>
+            <figure class="shot"><div class="ph"><img src="img/edge-e03-more.webp" width="404" height="200" alt="경고 오른쪽의 더 보기 단추" loading="lazy" decoding="async"><i class="ring" style="left:77.48%;top:41.50%;width:9.41%;height:19.00%"></i></div></figure>
+            <p class="no-go">휴지통을 누르면 받은 파일이 지워져요.</p>
+          </li>
+          <li>
+            <h3><b class="k">유지</b> 를 누르세요</h3>
+            <figure class="shot"><div class="ph"><img src="img/edge-e05-keep.webp" width="404" height="312" alt="메뉴의 유지" loading="lazy" decoding="async"><i class="ring" style="left:39.11%;top:42.31%;width:60.40%;height:13.46%"></i></div></figure>
+          </li>
+          <li>
+            <h3>한 번 더 묻는 창에서 <b class="k">삭제</b> 옆 <b class="k">∨</b> 를 누르세요</h3>
+            <p>「열기 전에 … 신뢰할 수 있는지 확인합니다」 창이 떠요. 큰 <b class="k">삭제</b> 단추가 아니라 <b>오른쪽의 작은 화살표</b>를 눌러야 해요.</p>
+            <figure class="shot"><div class="ph"><img src="img/edge-e06-dialog.webp" width="404" height="476" alt="삭제 단추 옆의 화살표" loading="lazy" decoding="async"><i class="ring" style="left:75.00%;top:83.61%;width:10.40%;height:8.40%"></i></div></figure>
+            <p class="no-go"><b class="k">삭제</b> 를 누르면 받은 파일이 지워져요. 그랬다면 처음부터 다시 받으면 돼요.</p>
+          </li>
+          <li>
+            <h3><b class="k">그래도 계속</b> 을 누르세요</h3>
+            <figure class="shot"><div class="ph"><img src="img/edge-e07-continue.webp" width="404" height="476" alt="그래도 계속" loading="lazy" decoding="async"><i class="ring" style="left:63.37%;top:90.34%;width:27.72%;height:9.03%"></i></div></figure>
+          </li>
+          <li>
+            <h3>받기가 끝나면 <b class="k">파일 열기</b></h3>
+            <p>바로 설치 프로그램이 열려요. Edge 에서 이미 확인했기 때문에, 다음 단계의 윈도우 경고는 보통 다시 뜨지 않아요 — 그러면 <a href="#key">3. 인증코드 넣기</a>로 넘어가세요.</p>
+            <figure class="shot"><div class="ph"><img src="img/edge-e09-done.webp" width="404" height="160" alt="받기 끝 파일 열기" loading="lazy" decoding="async"><i class="ring" style="left:9.41%;top:48.75%;width:16.34%;height:21.25%"></i></div></figure>
+          </li>
+        </ol>
+      </div>
+
+      <div class="pane pane-chrome">
+        <ol class="st">
+          <li>
+            <h3>「의심스러운 다운로드 차단됨」 이 떠요 — 그 줄을 누르세요</h3>
+            <p>오른쪽 위에 이렇게 나오면 받기가 멈춘 상태예요. 새 프로그램이라 뜨는 경고예요.</p>
+            <figure class="shot"><div class="ph"><img src="img/chrome-c01-blocked.webp" width="476" height="190" alt="크롬의 의심스러운 다운로드 차단됨" loading="lazy" decoding="async"><i class="ring" style="left:4.20%;top:54.21%;width:68.49%;height:31.58%"></i></div></figure>
+          </li>
+          <li>
+            <h3><b class="k">의심스러운 파일 다운로드</b> 를 누르세요</h3>
+            <p>「이 파일은 일반적으로 다운로드되지 않으며 위험할 수 있습니다」 는 처음 보는 파일이면 나오는 말이에요.</p>
+            <figure class="shot"><div class="ph"><img src="img/chrome-c02-detail.webp" width="596" height="268" alt="의심스러운 파일 다운로드 단추" loading="lazy" decoding="async"><i class="ring" style="left:42.45%;top:68.28%;width:33.05%;height:19.40%"></i></div></figure>
+            <p class="no-go"><b class="k">기록에서 삭제</b> 를 누르면 받은 파일이 지워져요.</p>
+          </li>
+          <li>
+            <h3>받기가 끝나면 파일 옆 <b class="k">열기</b></h3>
+            <p>「최근 다운로드 기록」 에서 파일에 마우스를 올리면 오른쪽에 열기 단추가 보여요.</p>
+            <figure class="shot"><div class="ph"><img src="img/chrome-c05-open.webp" width="476" height="250" alt="다운로드 기록의 열기 단추" loading="lazy" decoding="async"><i class="ring" style="left:60.50%;top:58.40%;width:9.24%;height:17.60%"></i></div></figure>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  
+  <section class="stage" id="run">
+    <h2 class="stage-h"><span class="no">2</span>실행하기</h2>
+    <p class="stage-d">받은 파일을 열면 윈도우가 「Windows의 PC 보호」 창을 띄울 수 있어요. 크롬 · 웨일 등으로 받았다면 대개 이 창이 떠요.</p>
+    <ol class="st">
+      <li>
+        <h3><b class="k">추가 정보</b> 를 누르세요</h3>
+        <p>처음에는 <b class="k">실행 안 함</b> 단추만 보여요. 당황하지 말고 글 아래의 <b class="k">추가 정보</b> 를 누르세요.</p>
+        <figure class="shot"><div class="ph"><img src="img/smartscreen-s01-blocked.webp" width="548" height="500" alt="Windows의 PC 보호 창의 추가 정보" loading="lazy" decoding="async"><i class="ring" style="left:3.83%;top:24.00%;width:14.96%;height:6.80%"></i></div></figure>
+      </li>
+      <li>
+        <h3><b class="k">실행</b> 을 누르세요</h3>
+        <p>「게시자: 알 수 없는 게시자」 는 회사 인증 서명이 아직 없어서 나오는 표시예요. <b class="k">실행</b> 을 누르면 설치 프로그램이 열려요.</p>
+        <figure class="shot"><div class="ph"><img src="img/smartscreen-s04-run.webp" width="548" height="500" alt="실행 단추" loading="lazy" decoding="async"><i class="ring" style="left:60.40%;top:86.60%;width:13.50%;height:10.00%"></i></div></figure>
+      </li>
+    </ol>
+  </section>
+
+  
+  <section class="stage" id="key">
+    <h2 class="stage-h"><span class="no">3</span>동의하고 인증코드 넣기</h2>
+    <p class="stage-d">설치 프로그램이 차례로 묻는 것에 답하면 돼요. 관리자 비밀번호를 묻는 창은 뜨지 않아요.</p>
+    <ol class="st">
+      <li>
+        <h3>이용약관 — <b class="k">이용약관에 동의합니다</b> 를 고르고 <b class="k">다음</b></h3>
+        <p>동의를 골라야 <b class="k">다음</b> 이 눌려요.</p>
+        <figure class="shot"><div class="ph"><img src="img/installer-i01-terms.webp" width="596" height="466" alt="이용약관에 동의합니다를 고르고 다음" loading="lazy" decoding="async"><i class="ring" style="left:5.87%;top:78.33%;width:28.86%;height:6.44%"></i><i class="ring" style="left:70.97%;top:91.42%;width:14.43%;height:6.87%"></i></div></figure>
+      </li>
+      <li>
+        <h3>개인정보 처리방침 — 아래 칸에 표시하고 <b class="k">다음</b></h3>
+        <p>글 아래 「개인정보 처리방침에 동의합니다」 칸에 표시해야 <b class="k">다음</b> 이 눌려요.</p>
+        <figure class="shot"><div class="ph"><img src="img/installer-i02-privacy.webp" width="596" height="466" alt="개인정보 처리방침에 동의합니다 칸에 표시하고 다음" loading="lazy" decoding="async"><i class="ring" style="left:5.87%;top:81.76%;width:37.25%;height:6.44%"></i><i class="ring" style="left:70.97%;top:91.42%;width:14.43%;height:6.87%"></i></div></figure>
+      </li>
+      <li>
+        <h3>인증코드 — 구매하신 인증코드를 넣고 <b class="k">다음</b></h3>
+        <p><code>ABCDE-FGHIJ-KLMNO-PQRST-UVWXY</code> 모양의 코드예요. 복사해서 붙여 넣으면 틀릴 일이 없어요. 칸이 비어 있으면 <b class="k">다음</b> 이 눌리지 않아요. 인증코드 하나로 PC 3대까지 쓸 수 있어요.</p>
+        <figure class="shot"><div class="ph"><img src="img/installer-i03-key.webp" width="596" height="466" alt="인증코드 칸에 붙여 넣고 다음 — 사진의 인증코드는 가렸어요" loading="lazy" decoding="async"><i class="ring" style="left:6.04%;top:33.48%;width:88.42%;height:7.30%"></i><i class="ring" style="left:70.97%;top:91.42%;width:14.43%;height:6.87%"></i></div></figure>
+      </li>
+      <li>
+        <h3>추가 작업 — 그대로 두고 <b class="k">다음</b></h3>
+        <p>「바탕화면에 아이콘 만들기」, 「윈도우 시작 시 자동 실행 (사용 권장)」 이 있어요. 예약 발송은 원장톡이 켜져 있어야 보내지므로 자동 실행을 켜 두기를 권해요. 나중에 설정에서 바꿀 수 있어요.</p>
+        <figure class="shot"><div class="ph"><img src="img/installer-i04-tasks.webp" width="596" height="466" alt="추가 작업 두 칸이 켜진 채로 다음" loading="lazy" decoding="async"><i class="ring" style="left:6.21%;top:31.12%;width:38.93%;height:12.02%"></i><i class="ring" style="left:70.97%;top:91.42%;width:14.43%;height:6.87%"></i></div></figure>
+      </li>
+      <li>
+        <h3>설치 준비 완료 — <b class="k">설치</b></h3>
+        <p>고른 것을 한 번 더 보여 줘요. <b class="k">설치</b> 를 누르면 파일을 복사하고, 이어서 이 PC 를 인증해요. 잠깐 기다리세요.</p>
+        <figure class="shot"><div class="ph"><img src="img/installer-i05-ready.webp" width="596" height="466" alt="설치 준비 완료의 설치 단추" loading="lazy" decoding="async"><i class="ring" style="left:70.97%;top:91.42%;width:14.43%;height:6.87%"></i></div></figure>
+      </li>
+      <li>
+        <h3>끝 — <b class="k">마침</b></h3>
+        <p>중간에 인증 오류 창 없이 이 화면이 나오면 설치와 인증이 다 끝난 거예요(오류 창이 떴다면 아래 「이럴 땐」 을 보세요). 「원장톡 실행」 에 표시된 채로 <b class="k">마침</b> 을 누르면 바로 원장톡이 켜져요.</p>
+        <figure class="shot"><div class="ph"><img src="img/installer-i06-done.webp" width="596" height="466" alt="원장톡 설치 마법사 완료와 마침" loading="lazy" decoding="async"><i class="ring" style="left:35.07%;top:36.27%;width:17.11%;height:6.44%"></i><i class="ring" style="left:70.97%;top:91.42%;width:14.43%;height:6.87%"></i></div></figure>
+      </li>
+    </ol>
+    <p class="tip">「설치 위치」 를 묻는 화면이 나오면 그대로 <b class="k">다음</b> 을 누르세요.</p>
+  </section>
+
+  <section class="below">
+    <a class="gnext" href="../address-book/index.html"><span class="l">다음 가이드</span><span class="t">주소록 — 채팅방 등록 · 고치기</span><span class="ar" aria-hidden="true">›</span></a>
+    <h2 class="sec-h">이럴 땐 어떻게 하죠?</h2>
+    <div class="faq-list"><details class="faq-card"><summary>위험한 프로그램인가요?</summary><p>아니요, 경고는 바이러스가 발견됐다는 뜻이 아니에요. 아직 많은 사람이 받지 않은 새 프로그램이면 브라우저와 윈도우가 한 번 더 확인하라고 띄우는 안내예요. 「게시자: 알 수 없음」 은 회사 인증 서명이 아직 없어서 나와요. 원장톡에서 안내한 다운로드 링크로 받은 파일인지만 확인해 주세요.</p></details><details class="faq-card"><summary>스마트스크린 경고로 설치를 할 수 없어요</summary><p><span class="k">추가 정보</span>를 누른 뒤에도 <span class="k">실행</span>이 보이지 않으면 두 경우예요. 회사 · 기관에서 관리하는 PC 라면 관리 담당자가 막아 둔 것이라 담당자에게 문의해 주세요. 윈도우 11 의 「스마트 앱 컨트롤」 이 켜져 있어도 <span class="k">실행</span> 없이 막혀요. 이것을 끄는 것은 PC 보안 설정을 바꾸는 일이라, 직접 끄기 전에 구매처로 문의해 주세요.</p></details><details class="faq-card"><summary>경고가 하나도 안 떠요</summary><p>정상이에요. 브라우저 설정이나 그동안 받은 사람 수에 따라 경고 없이 바로 받아지고 열리기도 해요. 그대로 설치하면 돼요.</p></details><details class="faq-card"><summary>웨일 등 다른 브라우저로 받았어요</summary><p>크롬과 비슷하게 「위험할 수 있는 파일」 이라는 경고가 뜰 수 있고, 받은 파일을 열면 윈도우의 「Windows의 PC 보호」 창이 떠요. 위의 <span class="k">크롬 · 웨일 등</span> 순서대로 하시면 돼요.</p></details><details class="faq-card"><summary>실수로 [삭제]를 눌렀어요</summary><p>받은 파일만 지워진 거예요. 다운로드 링크에서 처음부터 다시 받으면 돼요.</p></details><details class="faq-card"><summary>「인증코드를 다시 확인해 주세요」 가 나와요</summary><p>인증코드가 맞지 않는 거예요. 받은 인증코드를 복사해서 그대로 붙여 넣어 주세요. 앞뒤에 빈칸이 들어가지 않았는지도 봐 주세요.</p></details><details class="faq-card"><summary>「이미 PC 3대에서 쓰고 있습니다」 가 나와요</summary><p>인증코드 하나로 PC 3대까지 쓸 수 있어요. 쓰지 않는 PC 의 원장톡에서 설정 → <span class="k">인증해제</span>로 자리를 비운 뒤 다시 설치해 주세요.</p></details><details class="faq-card"><summary>「인증 서버에 연결하지 못했습니다」 가 나와요</summary><p>인터넷 연결을 확인하고 <span class="k">예</span>를 눌러 다시 해 보세요. <span class="k">아니요</span>를 누르면 인증 없이 설치가 끝나고, 원장톡을 켜면 인증 화면이 떠요 — <span class="k">재인증</span>을 눌러 인증코드를 넣으면 돼요. 인증하기 전에는 보낼 수 없어요.</p></details><details class="faq-card"><summary>원장톡이 실행 중이라 설치할 수 없대요</summary><p>창이 보이지 않아도 화면 오른쪽 아래 트레이에서 돌고 있을 수 있어요. 트레이의 원장톡 아이콘을 오른쪽 클릭 → <span class="k">종료</span>로 끝낸 뒤 <span class="k">확인</span>을 눌러 주세요.</p></details></div>
+  </section>
+
+  <footer class="foot">궁금한 것이 가이드에 없으면 구매처로 문의해 주세요.</footer>
+</main>
+
+</body>
+</html>
