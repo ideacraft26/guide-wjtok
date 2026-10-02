@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preload" as="font" type="font/woff2" href="fonts/pretendard-regular.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/pretendard-bold.woff2" crossorigin>
+</head>
+<body>
+<title>원장톡 문제 해결 가이드 시안</title>
+<meta name="description" content="원장톡 문제 해결 — 시작 점검 · 카카오톡이 꺼져 있을 때 · 계속 진행하기 · 발송 중단">
+<style>
+@font-face{font-family:"Pretendard";font-weight:1 400;font-display:swap;src:url(fonts/pretendard-regular.woff2) format("woff2");}
+@font-face{font-family:"Pretendard";font-weight:401 500;font-display:swap;src:url(fonts/pretendard-medium.woff2) format("woff2");}
+@font-face{font-family:"Pretendard";font-weight:501 600;font-display:swap;src:url(fonts/pretendard-semibold.woff2) format("woff2");}
+@font-face{font-family:"Pretendard";font-weight:601 700;font-display:swap;src:url(fonts/pretendard-bold.woff2) format("woff2");}
+:root { --bg:#FFFFFF; --fg:#15141F; --dim:#5C5A70; --line:#E2E2EF; --code:#ECEBF5; --accent:#4F46E5; --chip:#EEEDFE;
+--sans:"Pretendard","Malgun Gothic",system-ui,sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#121120; --fg:#ECEBF5; --dim:#A3A1B8; --line:#2C2A40; --code:#1F1D31; --accent:#A49DFF; --chip:#2A2650; color-scheme:dark; } }
+:root[data-theme="dark"] { --bg:#121120; --fg:#ECEBF5; --dim:#A3A1B8; --line:#2C2A40; --code:#1F1D31; --accent:#A49DFF; --chip:#2A2650; color-scheme:dark; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.7 var(--sans); }
+.wrap { max-width:1264px; margin:0 auto; padding-inline:16px; padding-block:28px 64px; }
+header.pg { max-width:760px; margin-bottom:20px; }
+.eyebrow { font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); }
+h1 { font-size:26px; line-height:1.3; margin:4px 0 6px; text-wrap:balance; letter-spacing:-.01em; }
+header.pg p { margin:0; color:var(--dim); word-break:keep-all; }
+.gp { --p:#4F46E5; --p-h:#4338CA; --p-soft:#EEEDFE; --p-line:#C9C5FA; --tx:#15141F; --mut:#5C5A70; --faint:#8E8CA3;
+--ease:cubic-bezier(.65,0,.35,1); --pop:cubic-bezier(.2,.9,.25,1.05); color:var(--tx); }
+.gp-frame { border-radius:14px; overflow:hidden; background:#0f0e1a; box-shadow:0 1px 2px rgba(20,16,60,.10), 0 18px 50px -18px rgba(20,16,60,.45); }
+.gp-view { position:relative; overflow:hidden; background:#F8F8FC; }
+.gp-stage { position:absolute; left:0; top:0; width:1264px; height:761px; transform-origin:0 0; }
+.gp-view.moving .gp-stage { transition:transform .7s var(--ease); }
+.gp-host, .gp-lhost { display:block; position:absolute; inset:0; width:1264px; height:761px; overflow:hidden; pointer-events:none; z-index:0; }
+.gp-ov { position:absolute; inset:0; z-index:1; }
+.gp-spot { position:absolute; border-radius:12px; pointer-events:none;
+box-shadow:0 0 0 3px rgba(79,70,229,.55), 0 0 0 9999px rgba(18,16,38,.46);
+transition:left .6s var(--ease), top .6s var(--ease), width .6s var(--ease), height .6s var(--ease); }
+.gp-spot::after { content:""; position:absolute; inset:-3px; border-radius:inherit; border:2px solid var(--p); animation:gp-pulse 1.9s ease-out infinite; }
+@keyframes gp-pulse { 0% { transform:scale(1); opacity:.9; } 70% { transform:scale(1.045); opacity:0; } 100% { opacity:0; } }
+.gp-hit { position:absolute; border:0; border-radius:10px; background:transparent; cursor:pointer; padding:0; }
+.gp-hit:hover, .gp-hit:focus-visible { box-shadow:0 0 0 2px var(--hot, #FF9F1C); outline:0; }
+.gp-hit.on { box-shadow:0 0 0 2px #A49DFF; }
+.gp-cur { position:absolute; left:0; top:0; width:26px; height:26px; pointer-events:none; z-index:8; filter:drop-shadow(0 2px 3px rgba(0,0,0,.28)); transition:transform .75s var(--ease), opacity .2s; }
+.gp { --hot:#FF9F1C; --hot-ink:#B45309; --hot-soft:rgba(255,159,28,.30); }
+.gp.await .gp-cur, .gp.await .gp-lcur { opacity:0; }
+.gp-spot { z-index:6; }
+.gp-hits .gp-hit { z-index:7; }
+.gp-hit.click { border:0; border-radius:10px; background:transparent; }
+.gp-hit.click:hover, .gp-hit.click:focus-visible { box-shadow:0 0 0 2px var(--hot); outline:0; }
+.gp-tap { position:absolute; width:0; height:0; pointer-events:none; z-index:7; }
+.gp-tap::before, .gp-tap::after { content:""; position:absolute; left:-16px; top:-16px; width:32px; height:32px; border-radius:50%;
+border:3px solid var(--hot); animation:gp-tap 1.2s ease-out infinite; }
+.gp-tap::after { animation-delay:.6s; }
+@keyframes gp-tap { 0% { transform:scale(.35); opacity:1; } 100% { transform:scale(1.9); opacity:0; } }
+.gp-tip.nudge, .gp-mtip.nudge .gp-in { animation:gp-shake .45s ease-in-out; }
+@keyframes gp-shake { 20%, 60% { translate:-7px 0; } 40%, 80% { translate:7px 0; } }
+.gp-wait.click { color:var(--hot-ink); font-weight:650; font-size:13px; display:flex; align-items:center; gap:6px; }
+.gp-wait.click::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--hot); box-shadow:0 0 0 3px var(--hot-soft); }
+.gp-now.wait.click { color:var(--hot); }
+.gp-rip { position:absolute; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; pointer-events:none; z-index:7;
+background:radial-gradient(circle, rgba(79,70,229,.45) 0%, rgba(79,70,229,.18) 55%, transparent 70%); transform:scale(0); opacity:0; }
+.gp-rip.go { animation:gp-rip .6s ease-out; }
+@keyframes gp-rip { 0% { transform:scale(.2); opacity:1; } 100% { transform:scale(1.5); opacity:0; } }
+.gp-tip { position:absolute; width:318px; z-index:9; background:#fff; border-radius:16px; padding:16px 18px 14px; border:1px solid rgba(79,70,229,.16);
+box-shadow:0 1px 2px rgba(20,16,60,.08), 0 10px 28px rgba(20,16,60,.16), 0 28px 56px -16px rgba(79,70,229,.32);
+opacity:0; transform:translateY(6px) scale(.97); transition:opacity .28s, transform .38s var(--pop); pointer-events:none; }
+.gp-tip.show { opacity:1; transform:none; pointer-events:auto; }
+.gp-tip::before { content:""; position:absolute; width:14px; height:14px; background:#fff; border:1px solid rgba(79,70,229,.16); transform:rotate(45deg); }
+.gp-tip[data-side="bottom"]::before { top:-8px; left:var(--ax,40px); border-right:0; border-bottom:0; }
+.gp-tip[data-side="top"]::before    { bottom:-8px; left:var(--ax,40px); border-left:0; border-top:0; }
+.gp-tip[data-side="right"]::before  { left:-8px; top:var(--ay,28px); border-right:0; border-top:0; }
+.gp-tip[data-side="left"]::before   { right:-8px; top:var(--ay,28px); border-left:0; border-bottom:0; }
+.gp-tip[data-side="inside"]::before { display:none; }
+.gp-head { display:flex; align-items:center; gap:8px; }
+.gp-no { font-size:12px; font-weight:700; color:var(--p-h); background:var(--p-soft); padding:2px 9px; border-radius:99px; letter-spacing:.02em; }
+.gp-ch { font-size:12.5px; color:var(--faint); font-weight:600; }
+.gp-tip h4, .gp-mtip h4 { margin:9px 0 5px; font-size:17.5px; line-height:1.38; font-weight:700; letter-spacing:-.01em; word-break:keep-all; }
+.gp-tip p, .gp-mtip p { margin:0; font-size:14.5px; line-height:1.62; color:var(--mut); word-break:keep-all; }
+.gp .k { color:var(--p-h); background:var(--p-soft); padding:1px 7px; border-radius:6px; font-weight:650; white-space:nowrap; }
+.gp-tip b, .gp-mtip b { color:var(--tx); font-weight:650; }
+.gp-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:13px; }
+.gp-dots { display:flex; gap:5px; flex-wrap:wrap; }
+.gp-dots i { width:6px; height:6px; border-radius:99px; background:#DCDAEB; transition:width .3s var(--ease), background .3s; }
+.gp-dots i.on { width:18px; background:var(--p); } .gp-dots i.done { background:var(--p-line); }
+.gp-act { font-size:12px; font-weight:650; color:var(--mut); display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.gp-act svg { width:14px; height:14px; }
+.gp-opts { display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; }
+.gp-opts button { font:inherit; font-size:14px; font-weight:650; padding:8px 14px; border-radius:10px; cursor:pointer;
+border:1.5px solid var(--p-line); background:#fff; color:var(--p-h); transition:background .15s, border-color .15s; }
+.gp-opts button:hover, .gp-opts button:focus-visible { background:var(--p-soft); border-color:var(--p); outline:0; }
+.gp-opts button.on { background:var(--p); border-color:var(--p); color:#fff; }
+.gp-opts button.hint { border-color:var(--hot); box-shadow:0 0 0 3px var(--hot-soft); }
+.gp-wait { font-size:12px; color:var(--faint); margin-top:8px; }
+.gp-fp { position:absolute; left:300px; top:150px; width:560px; height:400px; z-index:5; background:#fff; border-radius:10px;
+border:1px solid #D5D3E2; box-shadow:0 24px 60px rgba(15,14,30,.35); display:flex; flex-direction:column; overflow:hidden;
+font:13px/1.5 var(--sans); color:#1E1D2A; opacity:0; transform:scale(.97); transition:opacity .2s, transform .25s var(--pop); pointer-events:none; }
+.gp-fp.show { opacity:1; transform:none; }
+.fp-bar { height:36px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#F3F2F8; font-weight:650; }
+.fp-addr { margin:8px 12px; padding:5px 10px; border:1px solid #DDDBE8; border-radius:6px; color:#5C5A70; font-size:12.5px; }
+.fp-body { flex:1; display:flex; min-height:0; border-top:1px solid #EEEDF5; border-bottom:1px solid #EEEDF5; }
+.fp-nav { width:130px; padding:8px; background:#FAFAFD; border-right:1px solid #EEEDF5; color:#5C5A70; }
+.fp-nav div { padding:5px 8px; border-radius:6px; } .fp-nav .on { background:#E9E8F6; color:#1E1D2A; font-weight:600; }
+.fp-list { flex:1; padding:8px; }
+.fp-row { display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:6px; }
+.fp-row svg { width:18px; height:18px; flex:none; }
+.fp-row.sel { background:#E3E1FB; outline:1px solid #B9B4F5; }
+.fp-row .sz { margin-left:auto; color:#8E8CA3; font-size:12px; }
+.fp-foot { display:flex; align-items:center; gap:8px; padding:10px 12px; }
+.fp-foot .lbl { color:#5C5A70; white-space:nowrap; }
+.fp-name { flex:1; min-width:0; height:30px; border:1px solid #CFCDE0; border-radius:6px; padding:0 9px; display:flex; align-items:center; overflow:hidden; white-space:nowrap; }
+.fp-btn { height:30px; padding:0 16px; border-radius:6px; display:flex; align-items:center; border:1px solid #CFCDE0; background:#fff; font-weight:600; }
+.fp-btn.pri { background:#3F3D56; border-color:#3F3D56; color:#fff; }
+.gp-sh { position:absolute; left:150px; top:120px; width:690px; height:410px; z-index:5; background:#fff; border-radius:8px;
+border:1px solid #CFD8D2; box-shadow:0 24px 60px rgba(15,14,30,.35); display:flex; flex-direction:column; overflow:hidden;
+font:13px/1.4 var(--sans); color:#1E1D2A; opacity:0; transform:scale(.97); transition:opacity .2s, transform .25s var(--pop); pointer-events:none; }
+.gp-sh.show { opacity:1; transform:none; }
+.sh-bar { height:34px; display:flex; align-items:center; gap:10px; padding:0 12px; background:#1F7A4D; color:#fff; font-weight:600; }
+.sh-bar b { width:20px; height:20px; border-radius:4px; background:#fff; color:#1F7A4D; display:grid; place-items:center; font-size:12px; }
+.sh-rib { display:flex; gap:18px; padding:7px 14px; background:#F3F6F4; border-bottom:1px solid #DDE5E0; color:#4A5A50; font-size:12px; }
+.sh-wrap { flex:1; overflow:hidden; padding:0; }
+.sh-grid { border-collapse:collapse; table-layout:fixed; width:100%; }
+.sh-grid th, .sh-grid td { border:1px solid #DADFDC; height:30px; padding:0 8px; white-space:nowrap; overflow:hidden; text-overflow:clip; text-align:left; }
+.sh-grid th { background:#F1F3F2; color:#5F6B64; font-weight:500; font-size:12px; text-align:center; }
+.sh-grid th.rn { width:36px; }
+.sh-grid tr.r1 td { font-weight:700; font-size:14px; }
+.sh-grid tr.r2 td { color:#6B6880; font-size:12px; white-space:normal; height:44px; line-height:1.35; }
+.sh-grid td.hd { background:#E9F3EC; font-weight:700; }
+.sh-grid td.fill { background:#FFFBEA; }
+.sh-grid td.typing::after { content:''; display:inline-block; width:1px; height:14px; margin-left:1px; background:#1E1D2A; vertical-align:-2px; }
+.sh-tabs { display:flex; gap:2px; padding:4px 12px; background:#F3F6F4; border-top:1px solid #DDE5E0; font-size:12px; }
+.sh-tabs .on { background:#fff; padding:2px 14px; border-bottom:2px solid #1F7A4D; color:#1F7A4D; font-weight:600; }
+.gp-bar { background:#14132a; color:#e9e8f5; padding:10px 14px 12px; display:flex; flex-direction:column; gap:8px; }
+.gp-track { position:relative; height:18px; display:flex; gap:3px; align-items:center; cursor:pointer; touch-action:none; }
+.gp-seg { position:relative; height:5px; flex:var(--d) 1 0; background:rgba(255,255,255,.18); border-radius:3px; overflow:hidden; transition:height .15s; }
+.gp-seg.tent { background:repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 4px, transparent 4px 7px); }
+.gp-seg.ch::after { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:#FFD166; }
+.gp-track:hover .gp-seg { height:8px; }
+.gp-seg b { position:absolute; inset:0; width:0; background:linear-gradient(90deg,#7C74F2,#A49DFF); }
+.gp-knob { position:absolute; top:50%; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%; background:#fff; box-shadow:0 0 0 4px rgba(124,116,242,.35); pointer-events:none; }
+.gp-hover { position:absolute; bottom:24px; transform:translateX(-50%); background:#fff; color:#15141F; font-size:12px; font-weight:600;
+padding:4px 9px; border-radius:7px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .15s; box-shadow:0 4px 14px rgba(0,0,0,.3); }
+.gp-track:hover .gp-hover { opacity:1; }
+.gp-ctl { display:flex; align-items:center; gap:6px; font-size:13px; }
+.gp-ctl button { background:none; border:0; color:inherit; cursor:pointer; width:32px; height:30px; border-radius:8px; display:grid; place-items:center; font:inherit; }
+.gp-ctl button:hover { background:rgba(255,255,255,.1); }
+.gp-ctl button:focus-visible { outline:2px solid #A49DFF; }
+.gp-ctl svg { width:18px; height:18px; fill:currentColor; }
+.gp-time { white-space:nowrap; font-variant-numeric:tabular-nums; opacity:.8; margin-left:4px; }
+.gp-now { margin-left:auto; opacity:.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45%; }
+.gp-now.wait { color:#FFD166; opacity:1; font-weight:650; }
+.gp-ctl .gp-spd { width:auto; padding:0 9px; font-weight:700; font-size:12px; }
+@media (max-width:520px) { .gp-now { display:none; } .gp-ctl .gp-spd { margin-left:auto; } }
+.gp-mtip { display:none; background:#fff; padding:14px 14px 16px; border-top:1px solid #E2E2EF; }
+.gp.mfit .gp-mtip { display:block; } .gp.mfit .gp-tip { display:none; }
+.gp-mtip .gp-in { transition:opacity .25s, transform .35s var(--pop); opacity:0; transform:translateY(4px); }
+.gp-mtip.show .gp-in { opacity:1; transform:none; }
+.gp-mtip p { min-height:4.86em; }
+.gp-loupe { position:relative; height:150px; border-radius:12px; overflow:hidden; background:#F8F8FC; border:1px solid #E2E2EF; margin-bottom:12px; }
+.gp-lstage { position:absolute; left:0; top:0; width:1264px; height:761px; transform-origin:0 0; transition:transform .6s var(--ease); }
+.gp-lspot { position:absolute; border-radius:12px; box-shadow:0 0 0 3px #4F46E5, 0 0 0 9px rgba(79,70,229,.16);
+transition:left .6s var(--ease), top .6s var(--ease), width .6s var(--ease), height .6s var(--ease); }
+.gp-lcur { position:absolute; left:0; top:0; width:30px; height:30px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.28)); transition:transform .6s var(--ease); z-index:8; }
+.gp-lzoom { position:absolute; left:8px; top:8px; display:flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:#fff;
+background:rgba(21,20,31,.7); padding:2px 8px 2px 6px; border-radius:7px; z-index:9; }
+.gp-lzoom svg { width:12px; height:12px; }
+.gt-h { font-size:16px; margin:24px 0 0; } .gt-h span { color:var(--dim); font-weight:400; font-size:14px; }
+.gt { margin:12px 0 0; padding:0; list-style:none; counter-reset:s; }
+.gt li { counter-increment:s; display:flex; gap:12px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:background .2s; word-break:keep-all; }
+.gt li::before { content:counters(s, "-"); flex:none; min-width:24px; height:24px; padding:0 6px; border-radius:99px; display:grid; place-items:center;
+font-size:12px; font-weight:700; background:var(--code); color:var(--dim); margin-top:2px; font-variant-numeric:tabular-nums; }
+.gt li:hover { background:var(--code); }
+.gt li.on { background:color-mix(in srgb, var(--accent) 10%, transparent); } .gt li.on::before { background:var(--accent); color:var(--bg); }
+.gt li > div { min-width:0; flex:1; }
+.gt b.t { display:block; } .gt .x { color:var(--dim); font-size:14px; }
+.gt .k { color:var(--accent); font-weight:650; }
+.gt li.choice { cursor:default; flex-wrap:wrap; }
+.gt-br { margin-top:10px; border:1px solid var(--line); border-radius:12px; padding:8px; }
+.gt-tabs { display:flex; flex-wrap:wrap; gap:6px; padding:2px 2px 6px; }
+.gt-tabs button { font:inherit; font-size:13px; font-weight:650; padding:5px 12px; border-radius:99px; border:1px solid var(--line); background:var(--bg); color:var(--dim); cursor:pointer; }
+.gt-tabs button[aria-selected="true"] { background:var(--accent); border-color:var(--accent); color:var(--bg); }
+.gt-br .gt { margin:0; }
+.gt-none { color:var(--dim); font-size:14px; padding:8px 12px; }
+.crumb { display:flex; align-items:center; gap:8px; margin:-8px 0 10px; font-size:13px; }
+.crumb .home { color:var(--accent); font-weight:650; text-decoration:none; padding:6px 10px 6px 0; }
+.crumb .cat { color:var(--dim); padding-left:10px; border-left:1px solid var(--line); }
+.below { max-width:960px; margin-top:22px; }
+.sec-h { font-size:17px; margin:28px 0 10px; letter-spacing:-.01em; }
+.gnext { display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:14px; background:var(--accent); color:#fff; text-decoration:none; }
+.gnext .l { font-size:12.5px; opacity:.85; white-space:nowrap; } .gnext .t { font-weight:700; flex:1; min-width:0; }
+.gnext .ar { font-size:22px; line-height:1; }
+.rel-list { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding:2px 2px 8px; margin:0 -16px; padding-inline:16px; scroll-padding-inline:16px; scrollbar-width:none; }
+.rel-list::-webkit-scrollbar { display:none; }
+.rel-list .gcard { flex:0 0 78%; scroll-snap-align:start; }
+@media (min-width:720px) { .rel-list { display:grid; grid-template-columns:repeat(3, 1fr); overflow:visible; margin:0; padding:0; } .rel-list .gcard { flex:auto; } }
+.gcard { display:flex; flex-direction:column; gap:4px; padding:14px 16px; border-radius:14px; background:var(--bg); border:1px solid var(--line);
+color:var(--fg); text-decoration:none; word-break:keep-all; transition:border-color .2s, transform .2s; }
+.gcard:hover { border-color:var(--accent); }
+.gcard:active { transform:scale(.99); }
+.gc-cat { font-size:12px; font-weight:700; color:var(--accent); }
+.gc-t { font-weight:700; font-size:15.5px; line-height:1.4; }
+.gc-b { font-size:13.5px; color:var(--dim); line-height:1.55; }
+.gc-m { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.gc-m span { font-size:12px; color:var(--dim); background:var(--code); padding:2px 8px; border-radius:99px; }
+.faq-list { display:flex; flex-direction:column; gap:8px; }
+.faq-card { border:1px solid var(--line); border-radius:12px; background:var(--bg); }
+.faq-card summary { list-style:none; cursor:pointer; padding:13px 44px 13px 16px; font-weight:650; position:relative; word-break:keep-all; }
+.faq-card summary::-webkit-details-marker { display:none; }
+.faq-card summary::after { content:'+'; position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:20px; color:var(--accent); font-weight:400; }
+.faq-card[open] summary::after { content:'−'; }
+.faq-card p { margin:0; padding:0 16px 14px; color:var(--dim); font-size:14.5px; word-break:keep-all; }
+.faq-card .k, .gt .k { color:var(--accent); font-weight:650; }
+@media (max-width:719px) { .wrap { padding-block:16px 48px; } h1 { font-size:22px; } header.pg { margin-bottom:14px; } }
+.fb { margin-top:32px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; }
+.fb > div { min-width:0; background:var(--code); border-radius:14px; padding:16px 18px; word-break:keep-all; }
+.fb h2 { font-size:15px; margin:0 0 6px; }
+.fb ul { margin:0; padding-left:18px; color:var(--dim); font-size:14px; }
+.fb b { color:var(--fg); }
+.fb .chip { color:var(--accent); background:var(--chip); padding:1px 7px; border-radius:6px; font-weight:650; }
+@media (prefers-reduced-motion: reduce) {
+.gp-spot, .gp-cur, .gp-view.moving .gp-stage, .gp-tip, .gp-lstage, .gp-lspot, .gp-lcur, .gp-fp, .gp-sh, .gp-mk { transition:none !important; }
+.gp-spot::after, .gp-rip.go { animation:none !important; }
+.gp-tap::before, .gp-tip.nudge, .gp-mtip.nudge .gp-in, .gp-wait.click::before { animation:none !important; }
+.gp-tap::before { transform:scale(1); opacity:1; }
+.gp-tap::after { display:none; }
+}
+.gp-mk { position:absolute; z-index:5; opacity:0; transform:scale(.97); transition:opacity .2s, transform .25s var(--pop); pointer-events:none;
+font:13px/1.5 var(--sans); color:#1E1D2A; }
+.gp-mk.show { opacity:1; transform:none; }
+.gp-mk.win { background:#fff; border:1px solid #D5D3E2; border-radius:8px; box-shadow:0 24px 60px rgba(15,14,30,.35); display:flex; flex-direction:column; overflow:hidden; }
+.mk-title { height:32px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; background:#F3F2F8; font-size:12.5px; }
+.mk-head { padding:12px 18px; border-bottom:1px solid #EEEDF5; }
+.mk-head .t { font-weight:700; } .mk-head .s { color:#6B6880; font-size:12.5px; margin-top:2px; }
+.mk-body { flex:1; padding:14px 22px; overflow:hidden; } .mk-body p { margin:0 0 8px; color:#3F3D56; }
+.mk-field { margin-top:10px; } .mk-field label { display:block; font-size:12.5px; color:#5C5A70; margin-bottom:4px; }
+.mk-field .in { height:30px; border:1px solid #9C98C9; border-radius:4px; padding:0 9px; display:flex; align-items:center; font-family:var(--mono, monospace); }
+.mk-checks { margin-top:8px; } .mk-checks .ck { display:flex; align-items:center; gap:8px; padding:4px 0; }
+.mk-checks i { width:14px; height:14px; border:1px solid #8E8CA3; border-radius:3px; display:inline-block; }
+.mk-checks .on i { background:#3F3D56; border-color:#3F3D56; box-shadow:inset 0 0 0 2px #fff; }
+.mk-btns { display:flex; justify-content:flex-end; gap:8px; padding:10px 14px; border-top:1px solid #EEEDF5; background:#FAFAFD; }
+.mk-btns .b { min-width:76px; height:28px; padding:0 12px; border:1px solid #CFCDE0; border-radius:4px; display:flex; align-items:center; justify-content:center; background:#fff; }
+.mk-btns .b.pri { border-color:#3F3D56; box-shadow:inset 0 0 0 1px #3F3D56; font-weight:600; }
+.gp-mk.tray { display:flex; flex-direction:column; justify-content:flex-end; gap:10px; }
+.mk-menu { align-self:flex-end; min-width:160px; background:#fff; border:1px solid #D5D3E2; border-radius:8px; box-shadow:0 16px 40px rgba(15,14,30,.3); padding:6px; }
+.mk-mi { padding:7px 14px; border-radius:5px; } .mk-mi.on { background:#E9E8F6; font-weight:600; }
+.mk-bar { height:44px; background:#1F1E2E; border-radius:8px; display:flex; align-items:center; justify-content:flex-end; gap:14px; padding:0 14px; color:#fff; font-size:12px; }
+.mk-ic { width:22px; height:22px; border-radius:6px; background:#5B50E6; display:grid; place-items:center; font-weight:700; font-size:12px; outline:2px solid #FF9F1C; outline-offset:2px; }
+</style>
+<div class="wrap">
+<header class="pg">
+  <!-- 위키 안의 자리 — 목록으로 돌아가는 길과 분류(위키 · catalog.json). 목록 밖의 시안이면 비어 있다 -->
+  <nav class="crumb"><a class="home" href="../index.html">‹ 가이드 목록</a><span class="cat">설정 · 문제 해결</span></nav>
+  <div class="eyebrow">원장톡 사용 가이드 · 문제 해결</div>
+  <h1>발송이 시작되지 않을 때</h1>
+  <p>원장톡은 카카오톡 상태를 먼저 점검하고, 걸리는 것이 있으면 무엇을 하면 되는지 알려 줘요. 그 창이 뜨면 어떻게 하면 되는지 보여 드려요.</p>
+</header>
+
+<div class="gp" id="gp">
+  <!-- 좁은 화면은 「전체 + 돋보기」 하나만(2026-10-02 사용자 — 「확대 따라가기」 와 고르는 탭을 걷었다) -->
+  <div class="gp-frame">
+    <div class="gp-view">
+      <div class="gp-stage">
+        <div class="gp-host"></div>
+        <div class="gp-ov">
+          <div class="gp-spot"></div>
+          <div class="gp-hits"></div>
+          <div class="gp-fp" aria-hidden="true">
+  <div class="fp-bar">열기<span>✕</span></div>
+  <div class="fp-addr">내 PC › 사진 › 학원</div>
+  <div class="fp-body"><div class="fp-nav"><div>바탕 화면</div><div>문서</div><div class="on">사진</div><div>다운로드</div></div>
+    <div class="fp-list"><div class="fp-row pick"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="#E8F0FF" stroke="#6C8CD5"/><circle cx="9" cy="10" r="2" fill="#6C8CD5"/><path d="M5 18l5-5 3 3 2-2 4 4z" fill="#6C8CD5"/></svg><span class="nm">햇님반 활동 사진.jpg</span><span class="sz">640KB</span></div>
+      <div class="fp-row"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="#E8F0FF" stroke="#6C8CD5"/><circle cx="9" cy="10" r="2" fill="#6C8CD5"/><path d="M5 18l5-5 3 3 2-2 4 4z" fill="#6C8CD5"/></svg><span class="nm">달님반 만들기 시간.jpg</span><span class="sz">1.1MB</span></div>
+      <div class="fp-row"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="#FFF3E6" stroke="#D5935A"/><path d="M14 3v4h4" fill="none" stroke="#D5935A"/></svg><span class="nm">10월 행사 안내.pdf</span><span class="sz">320KB</span></div></div></div>
+  <div class="fp-foot"><span class="lbl">파일 이름</span><span class="fp-name"></span><span class="fp-btn pri">열기</span><span class="fp-btn">취소</span></div>
+</div>
+<div class="gp-sh" aria-hidden="true"></div>
+<div class="gp-mk" aria-hidden="true"></div>
+          <div class="gp-rip"></div>
+          <svg class="gp-cur" viewBox="0 0 26 26" aria-hidden="true"><path d="M5 3 L5 21 L9.6 16.8 L12.6 23.4 L15.6 22 L12.6 15.6 L19 15.6 Z" fill="#fff" stroke="#15141F" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <div class="gp-tip" role="status" aria-live="polite">
+            <div class="gp-head"><span class="gp-no"></span><span class="gp-ch"></span></div>
+            <h4></h4><p></p>
+            <div class="gp-opts" hidden></div>
+            <div class="gp-wait" hidden>화면에서 직접 눌러도 돼요</div>
+            <div class="gp-foot"><div class="gp-dots"></div><div class="gp-act"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="gp-mtip" aria-live="polite">
+      <div class="gp-in">
+        <div class="gp-loupe">
+          <div class="gp-lstage">
+            <div class="gp-lhost"></div>
+            <div class="gp-fp" aria-hidden="true">
+  <div class="fp-bar">열기<span>✕</span></div>
+  <div class="fp-addr">내 PC › 사진 › 학원</div>
+  <div class="fp-body"><div class="fp-nav"><div>바탕 화면</div><div>문서</div><div class="on">사진</div><div>다운로드</div></div>
+    <div class="fp-list"><div class="fp-row pick"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="#E8F0FF" stroke="#6C8CD5"/><circle cx="9" cy="10" r="2" fill="#6C8CD5"/><path d="M5 18l5-5 3 3 2-2 4 4z" fill="#6C8CD5"/></svg><span class="nm">햇님반 활동 사진.jpg</span><span class="sz">640KB</span></div>
+      <div class="fp-row"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="#E8F0FF" stroke="#6C8CD5"/><circle cx="9" cy="10" r="2" fill="#6C8CD5"/><path d="M5 18l5-5 3 3 2-2 4 4z" fill="#6C8CD5"/></svg><span class="nm">달님반 만들기 시간.jpg</span><span class="sz">1.1MB</span></div>
+      <div class="fp-row"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="#FFF3E6" stroke="#D5935A"/><path d="M14 3v4h4" fill="none" stroke="#D5935A"/></svg><span class="nm">10월 행사 안내.pdf</span><span class="sz">320KB</span></div></div></div>
+  <div class="fp-foot"><span class="lbl">파일 이름</span><span class="fp-name"></span><span class="fp-btn pri">열기</span><span class="fp-btn">취소</span></div>
+</div>
+<div class="gp-sh" aria-hidden="true"></div>
+<div class="gp-mk" aria-hidden="true"></div>
+            <div class="gp-lspot"></div>
+            <div class="gp-lhits"></div>
+            <svg class="gp-lcur" viewBox="0 0 26 26" aria-hidden="true"><path d="M5 3 L5 21 L9.6 16.8 L12.6 23.4 L15.6 22 L12.6 15.6 L19 15.6 Z" fill="#fff" stroke="#15141F" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          </div>
+          <span class="gp-lzoom"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 4a6 6 0 104.47 10l4.76 4.77 1.41-1.41-4.76-4.77A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/></svg>확대</span>
+        </div>
+        <div class="gp-head"><span class="gp-no"></span><span class="gp-ch"></span></div>
+        <h4></h4><p></p>
+        <div class="gp-opts" hidden></div>
+        <div class="gp-wait" hidden>위 단추로 골라 주세요</div>
+      </div>
+    </div>
+    <div class="gp-bar">
+      <div class="gp-track" role="slider" aria-label="진행" tabindex="0"><div class="gp-knob"></div><div class="gp-hover"></div></div>
+      <div class="gp-ctl">
+        <button type="button" class="gp-prev" aria-label="이전 걸음"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+        <button type="button" class="gp-play" aria-label="재생"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg></button>
+        <button type="button" class="gp-next" aria-label="다음 걸음"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+        <span class="gp-time">0:00 / 0:00</span>
+        <span class="gp-now"></span>
+        <button type="button" class="gp-spd" aria-label="속도">1×</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 재생기가 띄우는 안내 문구 — 한곳에 모아 둔다. 숨어 있어도 빌드의 글꼴 측정(measure.mjs)이 이 글자를 센다
+       (재생 중에만 뜨는 글이라 측정 순간에 안 보일 수 있다 · 클래스는 실제로 뜨는 자리와 같게 — 굵기가 같아야 한다) -->
+  <div class="gp-strings" hidden>
+    <span class="gp-now wait" data-k="nowChoose">하나를 골라 주세요 — 고르면 이어서 보여 드려요</span>
+    <span class="gp-now wait click" data-k="nowClick">표시된 곳을 눌러 주세요 — 누르면 이어서 보여 드려요</span>
+    <span class="gp-wait" data-k="tipChoose">화면에서 직접 눌러도 돼요</span>
+    <span class="gp-wait" data-k="mtipChoose">돋보기 안의 주황 동그라미나 위 단추로 골라 주세요</span>
+    <span class="gp-wait click" data-k="tipClick">주황 동그라미가 있는 곳을 직접 눌러 보세요</span>
+    <span class="gp-wait click" data-k="mtipClick">돋보기 안의 주황 동그라미를 눌러 보세요</span>
+  </div>
+
+  <!-- ★ 「글로 보기」 는 싣지 않는다(2026-10-02 사용자) — 대신 다음 가이드 · 관련 가이드 · 이럴 땐 어떻게 하죠?(catalog.json) -->
+  <section class="below"><h2 class="sec-h">관련 가이드</h2><div class="rel-list"><a class="gcard" href="../settings/index.html"><span class="gc-cat">설정 · 문제 해결</span><span class="gc-t">설정 살펴보기</span><span class="gc-b">스킨, PC 등록, 자동실행, 데이터 보존, 로그, 잠금모드 비밀번호</span><span class="gc-m"><span>약 1분</span><span>직접 누르기 4번</span></span></a><a class="gcard" href="../send-run/index.html"><span class="gc-cat">메시지 보내기</span><span class="gc-t">발송 ④ 보내고 결과 보기</span><span class="gc-b">보내기, 결과 읽기, 보류된 방에 다시 보내기</span><span class="gc-m"><span>약 1분</span><span>직접 누르기 5번</span></span></a><a class="gcard" href="../plan-run/index.html"><span class="gc-cat">보낸 뒤</span><span class="gc-t">예약이 실행될 때</span><span class="gc-b">10초 카운트다운, 지금 시작 · 10분 연장, 놓친 예약 다시 보내기</span><span class="gc-m"><span>약 1분</span><span>직접 누르기 4번</span><span>고르는 갈래</span></span></a></div><h2 class="sec-h">이럴 땐 어떻게 하죠?</h2><div class="faq-list"><details class="faq-card"><summary>화면 배율이 다르다고 나와요</summary><p>카카오톡을 켠 뒤 화면 배율이 바뀐 거예요. 카카오톡을 트레이 아이콘에서 완전히 종료한 뒤 다시 켜 주세요.</p></details><details class="faq-card"><summary>다른 카카오톡 계정이라고 나와요</summary><p>처음 쓰던 카카오톡 계정과 다른 계정으로 로그인돼 있어요. 로그아웃한 뒤 원래 계정으로 로그인해 주세요.</p></details><details class="faq-card"><summary>인터넷 연결을 확인하라고 나와요</summary><p>인증 서버에 닿지 않는 거예요. 10초 뒤 저절로 다시 해 보고, 연결되면 바로 이어서 보내요.</p></details><details class="faq-card"><summary>다른 PC 에서 사용 중이라고 나와요</summary><p>같은 인증코드는 한 번에 한 PC 에서만 쓸 수 있어요. 다른 PC 의 원장톡을 종료해 주세요.</p></details></div></section>
+</div>
+
+
+</div>
+<script type="application/json" id="g-data">{"scenario":{"_":"발송이 시작되지 않을 때 — 앱을 켤 때의 시작 점검(M-708 · 항목 글은 C# StartCheck.cs 그대로) · 발송을 누른 뒤 점검에서 막힘(jobBlocked → M-706 · KKT-NOT-RUNNING) → [계속 진행하기]. 다른 막힘 코드는 글로만(M-706 의 제목 · 본문 표). 가짜 호스트 bootPatch startCheck · setBlock 으로 흉내 낸다","id":"trouble","title":"발송이 시작되지 않을 때","hostSpeed":2,"bootPatch":[{"startCheck":[{"title":"카카오톡이 실행되어 있지 않습니다","why":"예약 1건이 걸려 있는데, 카카오톡이 꺼져 있으면 발송하지 못합니다.","fix":"카카오톡을 켜고 로그인해 주세요."},{"title":"앱이 꺼져 있던 사이 예약 1건이 나가지 못했습니다","why":"예약 시각에 원장톡이 켜져 있어야 발송됩니다.","fix":"발송내역에서 다시 보낼 수 있습니다."}]}],"page":{"pageTitle":"원장톡 문제 해결 가이드 시안","eyebrow":"원장톡 사용 가이드 · 문제 해결","title":"발송이 시작되지 않을 때","lead":"원장톡은 카카오톡 상태를 먼저 점검하고, 걸리는 것이 있으면 무엇을 하면 되는지 알려 줘요. 그 창이 뜨면 어떻게 하면 되는지 보여 드려요.","desc":"원장톡 문제 해결 — 시작 점검 · 카카오톡이 꺼져 있을 때 · 계속 진행하기 · 발송 중단"},"steps":[{"id":"start","ch":"켤 때 점검","act":"look","dur":10,"expectDialog":true,"do":[["wait",900]],"target":"#askVeil .dialog","title":"원장톡을 켜면 먼저 점검해요","text":"카카오톡이 꺼져 있거나, 잠겨 있거나, 놓친 예약이 있으면 여기서 한꺼번에 알려 줘요. 항목마다 → 뒤에 할 일이 적혀 있어요."},{"id":"start-ok","ch":"켤 때 점검","act":"click","dur":4,"expectDialog":true,"target":"#askYes","title":"[확인]을 눌러요","text":""},{"id":"send","ch":"보낼 때 점검","act":"look","dur":8,"do":[["click","#askYes"],["host","setBlock","KKT-NOT-RUNNING"],["click","[data-nav=\"send\"]"],["type","#xsBody","안녕하세요, OO교습소입니다.\n이번 주 수업 일정 안내드립니다."],["click","[data-xsnext=\"1\"]"],["click","#xsPickGroup"],["click","[data-pick=\"햇님반\"]"],["click","#pickYes"],["click","[data-xsnext=\"2\"]"]],"target":"#xsGo","title":"[발송]을 누를 때 한 번 더 점검해요","text":"보내기 직전에 카카오톡 상태를 다시 봐요. 이번에는 카카오톡이 꺼져 있다고 해 볼게요."},{"id":"go","ch":"보낼 때 점검","act":"click","dur":4,"target":"#xsGo","title":"[발송]을 눌러요","text":""},{"id":"confirm","ch":"보낼 때 점검","act":"click","dur":4,"expectDialog":true,"do":[["click","#xsGo"]],"target":"#cfYes","title":"[발송]을 눌러요","text":""},{"id":"blocked","ch":"막혔을 때","act":"look","dur":10,"expectDialog":true,"do":[["click","#cfYes"],["wait",1300]],"target":"#askVeil .dialog","title":"무엇을 하면 되는지 알려 줘요","text":"창의 제목이 할 일이에요. 카카오톡을 켜고 로그인한 뒤 [계속 진행하기]를 누르면 이어서 보내요. 그만두려면 [발송 중단] — 보내지 않은 대상은 보류로 남아 발송내역에서 재발송할 수 있어요."},{"id":"continue","ch":"막혔을 때","act":"click","dur":4.5,"expectDialog":true,"target":"#askYes","title":"카카오톡을 켰으면 [계속 진행하기]","text":""},{"id":"resumed","ch":"막혔을 때","act":"look","dur":5.5,"do":[["click","#askYes"],["wait",1600]],"target":"#lockVeil .lock","title":"다시 점검하고 이어서 보내요","text":""},{"id":"others","ch":"다른 경우","act":"look","dur":11,"do":[["wait",6500]],"target":"[data-view=\"result\"] .tile.ok","title":"이럴 때도 같은 창이 떠요","text":"카카오톡이 로그아웃됐을 때 · 잠금모드로 잠겼을 때 · 처음과 다른 카카오톡 계정일 때 · 인터넷이 끊겼을 때 · 같은 인증코드로 다른 PC 에서 원장톡을 쓰는 중일 때. 창의 제목이 할 일이에요 — 하고 나서 [계속 진행하기]를 눌러요."},{"id":"end","ch":"다른 경우","act":"look","dur":9,"target":"[data-nav=\"conf\"]","title":"미리 해 두면 좋은 것","text":"카카오톡 잠금모드를 쓰면 설정의 「잠금모드 비밀번호」 를 저장해 두세요 — 보낼 때 저절로 풀고 끝나면 다시 잠가요. 화면 배율을 바꿨다고 나오면 카카오톡을 트레이 아이콘에서 완전히 종료한 뒤 다시 켜요."}]},"css":":host{display:block;width:1264px;height:761px;}\n:host{color-scheme: light; --bg: #F8F8FC; --surface: #FFFFFF; --surface-2: #F2F2F9; --border: #E2E2EF; --border-strong: #C7C7DC; --text: #15141F; --text-muted: #5C5A70; --text-faint: #8E8CA3; --primary: #4F46E5; --primary-hover: #4338CA; --primary-press: #3730A3; --primary-soft: #EEEDFE; --primary-border: #C9C5FA; --on-primary: #FFFFFF; --focus-ring: rgba(79,70,229,.26); --complement: #E58A2B; --complement-soft: #FDF2E5; --accent: #EFA100; --accent-soft: #FEF4DC; --on-accent: #382700; --ok: #0F7C55; --ok-soft: #E4F5EE; --ok-border: #B6DFCE; --hold: #5A6577; --hold-soft: #EEF0F3; --hold-border: #CFD4DC; --warn: #96590A; --warn-soft: #FDF2E0; --warn-border: #EFD5A8; --err: #BC332C; --err-soft: #FCEBEA; --err-border: #F3C7C4; --disabled-bg: #F2F2F7; --disabled-text: #A6A4B6; --disabled-border: #E5E5EE;}\n:host([data-skin=\"indigo\"]){color-scheme: light; --bg: #F8F8FC; --surface: #FFFFFF; --surface-2: #F2F2F9; --border: #E2E2EF; --border-strong: #C7C7DC; --text: #15141F; --text-muted: #5C5A70; --text-faint: #8E8CA3; --primary: #4F46E5; --primary-hover: #4338CA; --primary-press: #3730A3; --primary-soft: #EEEDFE; --primary-border: #C9C5FA; --on-primary: #FFFFFF; --focus-ring: rgba(79,70,229,.26); --complement: #E58A2B; --complement-soft: #FDF2E5; --accent: #EFA100; --accent-soft: #FEF4DC; --on-accent: #382700; --ok: #0F7C55; --ok-soft: #E4F5EE; --ok-border: #B6DFCE; --hold: #5A6577; --hold-soft: #EEF0F3; --hold-border: #CFD4DC; --warn: #96590A; --warn-soft: #FDF2E0; --warn-border: #EFD5A8; --err: #BC332C; --err-soft: #FCEBEA; --err-border: #F3C7C4; --disabled-bg: #F2F2F7; --disabled-text: #A6A4B6; --disabled-border: #E5E5EE;}\n:host([data-skin=\"teal\"]){color-scheme: light; --bg: #F5F9F8; --surface: #FFFFFF; --surface-2: #EDF4F3; --border: #DBE6E4; --border-strong: #BDCCC9; --text: #0F1917; --text-muted: #52625F; --text-faint: #85938F; --primary: #0F766E; --primary-hover: #0C625B; --primary-press: #0A4F48; --primary-soft: #E6F4F2; --primary-border: #A9D6D0; --on-primary: #FFFFFF; --focus-ring: rgba(15,118,110,.26); --complement: #CE5520; --complement-soft: #FBEDE6; --accent: #E08A08; --accent-soft: #FDF1DB; --on-accent: #33220A; --ok: #2E7D32; --ok-soft: #E8F4E9; --ok-border: #BEDCC0; --hold: #6B57A3; --hold-soft: #F0EDF9; --hold-border: #D2C9EC; --warn: #95590B; --warn-soft: #FCF1E0; --warn-border: #EED5A9; --err: #B7332B; --err-soft: #FBEBE9; --err-border: #F1C7C3; --disabled-bg: #EFF3F2; --disabled-text: #9AA6A3; --disabled-border: #E0E7E5;}\n:host([data-skin=\"plum\"]){color-scheme: light; --bg: #FBF7FA; --surface: #FFFFFF; --surface-2: #F5EFF3; --border: #E9DFE6; --border-strong: #CFBCC7; --text: #1D141A; --text-muted: #675A62; --text-faint: #9B8B94; --primary: #9B3072; --primary-hover: #84275F; --primary-press: #6C1F4D; --primary-soft: #FAEBF3; --primary-border: #EBBFD8; --on-primary: #FFFFFF; --focus-ring: rgba(155,48,114,.24); --complement: #0E7C86; --complement-soft: #E2F2F4; --accent: #DE8C13; --accent-soft: #FCF1DB; --on-accent: #33230A; --ok: #1F7A52; --ok-soft: #E6F3ED; --ok-border: #B4DAC6; --hold: #54539B; --hold-soft: #EBEBF7; --hold-border: #C6C6E7; --warn: #8E5A0A; --warn-soft: #FBF0DE; --warn-border: #E9D2A4; --err: #A32229; --err-soft: #F9E9EA; --err-border: #EBC0C4; --disabled-bg: #F3EEF1; --disabled-text: #A79AA1; --disabled-border: #E7DEE3;}\n:host([data-skin=\"kakao\"]){color-scheme: light; --bg: #F6F6F4; --surface: #FFFFFF; --surface-2: #F2F2F2; --border: #EBEBEB; --border-strong: #D6D6D6; --text: #191919; --text-muted: #767676; --text-faint: #A6A6A6; --primary: #FEE500; --primary-hover: #F2DA00; --primary-press: #E0C900; --primary-soft: #FFFBE0; --primary-border: #F6E88A; --on-primary: #191919; --focus-ring: rgba(60,30,30,.30); --complement: #3C1E1E; --complement-soft: #F5EFED; --accent: #3C1E1E; --accent-soft: #3C1E1E; --on-accent: #FEE500; --ok: #128A52; --ok-soft: #E5F5EC; --ok-border: #B5E2C8; --hold: #6B4FA0; --hold-soft: #F1EDF9; --hold-border: #D4C9EA; --warn: #C2410C; --warn-soft: #FDECE3; --warn-border: #F3C9B2; --err: #C22B20; --err-soft: #FDECEA; --err-border: #F6C8C2; --disabled-bg: #F2F2F2; --disabled-text: #A6A6A6; --disabled-border: #E5E5E5;}\n:host{--status-success: var(--ok); --status-success-bg: var(--ok-soft); --status-success-border: var(--ok-border); --status-hold: var(--hold); --status-hold-bg: var(--hold-soft); --status-hold-border: var(--hold-border); --status-fail: var(--err); --status-fail-bg: var(--err-soft); --status-fail-border: var(--err-border); --status-idle: var(--text-muted); --status-idle-bg: var(--surface-2); --status-idle-border: var(--border); --flag-warn: var(--warn); --flag-warn-bg: var(--warn-soft); --flag-warn-border: var(--warn-border); --lock-bg: var(--accent); --lock-text: var(--on-accent); --countdown-bg: var(--warn-soft); --countdown-text: var(--warn); --countdown-border: var(--warn-border); --link: var(--text); --link-hover: var(--text); --selected-bg: var(--primary-soft); --selected-text: var(--text);}\n:host{--btn-bg: var(--primary); --btn-bg-hover: var(--primary-hover); --btn-bg-press: var(--primary-press); --btn-text: var(--on-primary); --btn2-bg: var(--surface); --btn2-bg-hover: var(--surface-2); --btn2-text: var(--text); --btn2-border: var(--border-strong); --btn-danger-bg: var(--err-soft); --btn-danger-text: var(--err); --btn-danger-border: var(--err-border); --btn-off-bg: var(--disabled-bg); --btn-off-text: var(--disabled-text); --btn-off-border: var(--disabled-border); --input-bg: var(--surface); --input-text: var(--text); --input-border: var(--border-strong); --input-border-focus: var(--primary); --input-placeholder: var(--text-faint); --input-bg-off: var(--disabled-bg); --table-head-bg: var(--surface-2); --table-head-text: var(--text-muted); --table-border: var(--border); --table-row-hover: var(--surface-2); --table-row-selected: var(--primary-soft); --badge-bg: var(--surface-2); --badge-text: var(--text-muted); --badge-border: var(--border); --overlay: rgba(0, 0, 0, .38); --panel-bg: var(--surface); --panel-border: var(--border); --progress-bg: var(--surface-2); --progress-fill: var(--primary);}\n:host{--s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --r1: 6px; --r2: 9px; --r3: 14px; --rp: 999px; --f-sans: \"Pretendard\", \"Malgun Gothic\", -apple-system, system-ui, sans-serif; --f-mono: \"Cascadia Mono\", Consolas, \"D2Coding\", monospace; --t-xs: 11.5px; --t-sm: 12.5px; --t-md: 13.5px; --t-lg: 15px; --t-xl: 19px; --t-2xl: 25px; --ctl-h: 34px; --xs-rail: calc((var(--pane-w) - 2 * var(--s3)) / 3); --bar-h: 60px; --bar-btn-h: 38px; --win-min-w: 1280px; --win-min-h: 800px; --win-def-w: 1280px; --win-def-h: 810px; --nav-w: 200px; --pane-w: clamp(360px, 328.64px, 460px); --pane-fixed: 510px; --shadow-1: 0 1px 2px rgba(0, 0, 0, .05); --shadow-2: 0 8px 28px rgba(0, 0, 0, .13);}\n*{box-sizing: border-box;}\n:host, .gbody{height: 100%; overflow: auto;}\n.gbody{margin: 0; background: var(--bg); color: var(--text); font: var(--t-md)/1.6 var(--f-sans); -webkit-font-smoothing: antialiased;}\nh1, h2, h3, p, ul, ol{margin: 0;}\nul, ol{padding: 0; list-style: none;}\nbutton, input, textarea, select{font: inherit; color: inherit;}\n:focus-visible{outline: 3px solid var(--focus-ring); outline-offset: 1px; border-radius: var(--r1);}\n.muted{color: var(--text-muted);}\n.faint{color: var(--text-faint);}\n.num{font-family: var(--f-mono); font-variant-numeric: tabular-nums;}\n.small{font-size: var(--t-sm);}\n.app{display: grid; grid-template-columns: var(--nav-w) minmax(0, 1fr); height: 761px;}\n.nav{background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: var(--s4) var(--s3); gap: 2px; min-height: 0;}\n.nav .brand{padding: var(--s2) var(--s3) 14px;}\n.nav .brand{--wm-w: 115px;}\n.nav .brand .wm{display: block; width: var(--wm-w); height: auto; color: var(--primary);}\n.nav .brand small{display: block; width: var(--wm-w); margin-top: 3px; text-align: center; font-size: 14px; font-weight: 500; letter-spacing: 1.6px; white-space: nowrap; color: var(--text-faint);}\n.nav button{display: flex; align-items: center; gap: var(--s3); width: 100%; text-align: left; cursor: pointer; padding: var(--s2) var(--s3); border: 0; border-radius: var(--r2); background: transparent; color: var(--text-muted); font-size: var(--t-md);}\n.nav button:hover{background: var(--surface-2); color: var(--text);}\n.nav button[aria-current=\"true\"]{background: var(--selected-bg); color: var(--selected-text); font-weight: 650;}\n.nav .spacer{flex: 1;}\n.nav .sep{height: 1px; background: var(--border); margin: var(--s2) var(--s3);}\n.nav .foot{padding: var(--s2) var(--s3); font-size: var(--t-xs); color: var(--text-faint);}\n.main{display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0;}\n.tabs{display: flex; align-items: flex-end; gap: var(--s1); padding: var(--s3) var(--s5) 0; border-bottom: 1px solid var(--border); background: var(--surface); height: 56px;}\n.tabs .title{padding: var(--s2) var(--s4) var(--s3) var(--s1); font-size: var(--t-xl); font-weight: 700; letter-spacing: -.015em; white-space: nowrap;}\n.tabs .tabbtns{display: flex; align-items: flex-end; gap: var(--s1);}\n.work{display: grid; grid-template-columns: var(--pane-w) minmax(0, 1fr); gap: var(--s3); padding: var(--s3) var(--s5) var(--s4); min-height: 0; min-width: 0;}\n.col{display: grid; gap: var(--s3); min-height: 0; grid-template-rows: minmax(0, 1fr);}\n.panel{display: flex; flex-direction: column; min-height: 0; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--r3); box-shadow: var(--shadow-1); overflow: hidden;}\n.panel > header{display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4); border-bottom: 1px solid var(--border); background: var(--surface-2); font-size: var(--t-sm); font-weight: 650; color: var(--text-muted); height: 44px; flex: none;}\n.panel > header .btn.sm, .panel > header .seg{height: 28px;}\n.panel > header .hint{font-weight: 400; color: var(--text-faint);}\n.panel > header .right{margin-left: auto; display: flex; gap: var(--s2); align-items: center;}\n.panel > .in{padding: var(--s3) var(--s4); min-height: 0;}\n.panel.thin > .in{padding: var(--s2) var(--s4);}\n.panel.thin > header{min-height: 32px; padding: var(--s1) var(--s4);}\n.panel > .in.scroll{flex: 1; overflow-y: auto;}\n.actionbar{display: flex; align-items: center; gap: var(--s4); height: var(--bar-h); flex: none; padding: 0 var(--s5); border-top: 1px solid var(--border); background: var(--surface);}\n.actionbar .sum{display: flex; align-items: baseline; gap: var(--s2); font-size: var(--t-md); flex-wrap: nowrap; min-width: 0; overflow: hidden; white-space: nowrap;}\n.actionbar .sum > *{overflow: hidden; text-overflow: ellipsis;}\n.actionbar .right{margin-left: auto; display: flex; gap: var(--s2); flex: none;}\n.actionbar .btn, .actionbar .btn.big{height: var(--bar-btn-h); min-width: 104px; padding: 0 var(--s4); font-size: var(--t-md);}\ntextarea{width: 100%; padding: var(--s2) var(--s3); resize: none; line-height: 1.7; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); border-radius: var(--r2);}\ninput:focus, textarea:focus, select:focus{border-color: var(--input-border-focus); outline: 3px solid var(--focus-ring); outline-offset: 0;}\n::placeholder{color: var(--input-placeholder);}\ninput:disabled, textarea:disabled, select:disabled{background: var(--input-bg-off); color: var(--disabled-text); cursor: not-allowed;}\n.row{display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center;}\n.row.nowrap{flex-wrap: nowrap;}\n.lbl{font-size: var(--t-sm); color: var(--text-muted); font-weight: 600;}\n.seg{display: inline-flex; gap: 2px; padding: 3px; background: var(--surface-2); border-radius: var(--r2);}\n.seg.ctl{height: var(--ctl-h); align-items: stretch;}\n.seg.ctl label{display: inline-flex; align-items: center; padding: 0 var(--s3);}\n.seg label{padding: 3px var(--s3); border-radius: var(--r1); cursor: pointer; font-size: var(--t-sm); color: var(--text-muted);}\n.seg input{position: absolute; opacity: 0; pointer-events: none;}\n.seg label:has(input:checked){background: var(--surface); color: var(--text); font-weight: 650; box-shadow: var(--shadow-1);}\n.off{opacity: .45; pointer-events: none;}\n.cap{font-size: var(--t-sm); font-weight: 400; color: var(--text-faint); white-space: nowrap;}\n.cq{container-type: inline-size;}\n.check{display: flex; gap: var(--s2); align-items: flex-start; cursor: pointer;}\n.check input{margin: 3px 0 0; accent-color: var(--primary); flex: none;}\n.check .cap{font-weight: 600; font-size: var(--t-md); color: var(--text);}\n.btn{display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); cursor: pointer; white-space: nowrap; padding: var(--s2) var(--s4); font-size: var(--t-md); font-weight: 600; border: 1px solid transparent; border-radius: var(--r2); background: var(--btn-bg); color: var(--btn-text);}\n.btn:hover{background: var(--btn-bg-hover);}\n.btn:active{background: var(--btn-bg-press);}\n.btn.ghost{background: var(--btn2-bg); color: var(--btn2-text); border-color: var(--btn2-border);}\n.btn.ghost:hover{background: var(--btn2-bg-hover);}\n.btn.sm{padding: 3px var(--s3); font-size: var(--t-sm);}\n.btn:disabled, .btn[aria-disabled=\"true\"]{background: var(--btn-off-bg); color: var(--btn-off-text); border-color: var(--btn-off-border); cursor: not-allowed;}\n.drop{display: flex; align-items: center; justify-content: center; gap: var(--s2); padding: var(--s3); text-align: center; border: 1.5px dashed var(--border-strong); border-radius: var(--r2); background: var(--surface-2); color: var(--text-muted); font-size: var(--t-sm); cursor: pointer;}\n.drop:hover{border-color: var(--input-border-focus); color: var(--text);}\n.drop.tile{padding: var(--s2) var(--s3); min-height: 60px; flex: none;}\n.vars{display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s2);}\n.vars .v{display: inline-flex; align-items: center; gap: 0; padding: 0; border-radius: var(--rp); border: 1px dashed var(--flag-warn-border); background: var(--surface); color: var(--flag-warn); font-size: var(--t-sm);}\n.vars .v:hover{background: var(--flag-warn-bg);}\n.vars .vk{border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 2px var(--s2); border-radius: var(--rp);}\n.editor{position: relative; flex: 1 1 auto; min-height: 54px;}\n.editor .hl, .editor textarea{position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: var(--s2) var(--s3); border: 1px solid transparent; border-radius: var(--r2); font: inherit; line-height: 1.7; white-space: pre-wrap; word-break: break-word; overflow-y: auto;}\n.editor .hl{background: var(--input-bg); border-color: var(--input-border); color: var(--input-text); pointer-events: none;}\n.editor textarea{background: transparent; color: transparent; caret-color: var(--text); resize: none;}\n.editor textarea::selection{background: var(--focus-ring);}\n.editor textarea:focus{border-color: var(--input-border-focus); outline: 3px solid var(--focus-ring); outline-offset: 0;}\n.tw{overflow: auto; border: 1px solid var(--table-border); border-radius: var(--r2); min-height: 0;}\ntable{border-collapse: collapse; width: 100%; font-size: var(--t-md);}\nth, td{padding: var(--s2) var(--s3); text-align: left; vertical-align: middle; border-bottom: 1px solid var(--table-border);}\nth{background: var(--table-head-bg); color: var(--table-head-text); font-weight: 650; font-size: var(--t-sm); white-space: nowrap; position: sticky; top: 0; z-index: 1;}\ntbody tr:last-child td{border-bottom: 0;}\ntbody tr:hover{background: var(--table-row-hover);}\ntd.right, th.right{text-align: right;}\ntd.tight, th.tight{width: 1%; white-space: nowrap;}\n.bar{height: 8px; border-radius: var(--rp); background: var(--progress-bg); overflow: hidden;}\n.bar > i{display: block; height: 100%; background: var(--progress-fill); transition: width .2s ease;}\n.tiles{display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s3);}\n.tile{padding: var(--s4); border-radius: var(--r3); border: 1px solid var(--border); background: var(--surface);}\n.tile .n{font-size: var(--t-2xl); font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums;}\n.tile .l{font-size: var(--t-sm); font-weight: 650;}\n.tile .d{font-size: var(--t-xs); color: var(--text-muted); margin-top: var(--s1);}\n.tile.ok{background: var(--status-success-bg); border-color: var(--status-success-border);}\n.tile.ok .n, .tile.ok .l{color: var(--status-success);}\n.tile.hold{background: var(--status-hold-bg); border-color: var(--status-hold-border);}\n.tile.hold .n, .tile.hold .l{color: var(--status-hold);}\n.tile.fail{background: var(--status-fail-bg); border-color: var(--status-fail-border);}\n.tile.fail .n, .tile.fail .l{color: var(--status-fail);}\nbutton.tile{font: inherit; text-align: left; width: 100%; cursor: pointer; transition: opacity .12s, box-shadow .12s;}\nbutton.tile[aria-pressed=\"false\"]{opacity: .5;}\nbutton.tile[aria-pressed=\"false\"]:hover{opacity: .78;}\nbutton.tile.ok[aria-pressed=\"true\"]{box-shadow: 0 0 0 2px var(--status-success);}\n.note-box{display: flex; gap: var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r2); font-size: var(--t-sm); background: var(--surface-2); border: 1px solid var(--border);}\n.note-box.warn{background: var(--flag-warn-bg); border-color: var(--flag-warn-border);}\n.note-box .ic{flex: none; font-weight: 700;}\n.work.steps{grid-template-columns: minmax(0, 1fr) var(--xs-rail) var(--xs-rail) var(--xs-rail);}\n.steps.s4{grid-template-columns: var(--xs-rail) var(--xs-rail) var(--xs-rail) minmax(0, 1fr);}\n.xstep{display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--r3); box-shadow: var(--shadow-1);}\n.xstep > header{display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4); border-bottom: 1px solid var(--border); background: var(--surface-2); font-size: var(--t-sm); font-weight: 650; color: var(--text-muted); height: 44px; flex: none;}\n.xstep .no{display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: var(--rp); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); font-size: var(--t-sm); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;}\n.xstep:not(.rail) > header .no{background: var(--primary); border-color: var(--primary); color: var(--on-primary);}\n.xstep.rail.done > .rail .no{background: var(--ok-soft); border-color: var(--ok); color: var(--ok);}\n.xstep > header .nm{font-size: var(--t-md); color: var(--text);}\n.xstep > header .right{margin-left: auto;}\n.xstep > header .hint{font-weight: 400; color: var(--text-faint);}\n.xstep > .in{flex: 1; min-height: 0; overflow-y: auto; padding: var(--s3) var(--s4);}\n.xstep > footer{padding: 0 var(--s4); height: 52px; flex: none; border-top: 1px solid var(--border); background: var(--surface-2); font-size: var(--t-sm); color: var(--text-muted); display: flex; align-items: center; gap: var(--s2);}\n.xstep > footer .btn{height: 32px; padding: 0 var(--s4); font-size: var(--t-md);}\n.xstep > .rail{display: none;}\n.xstep.rail > .rail{display: flex; flex: 1; min-height: 0; flex-direction: column; align-items: center; text-align: center; gap: 0; padding: var(--s4) var(--s2) 0; cursor: pointer;}\n.xstep.rail:hover{border-color: var(--border-strong);}\n.rail .nm{flex: none; margin-top: var(--s2); font-size: var(--t-md); font-weight: 700; color: var(--text); line-height: 1.35; word-break: keep-all;}\n.rail .sum{flex: none; margin-top: 3px; font-size: var(--t-sm); color: var(--text-faint); line-height: 1.3; word-break: keep-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;}\n.xstep:not(.rail) > #xsIn1{display: flex; flex-direction: column;}\n#xsIn1 > .editor{flex: 1 1 0; min-height: 120px;}\n#xsIn1 > .vars, #xsIn1 > .files, #xsIn1 > .drop{flex: none;}\n.xstep:not(.rail) > #xsIn4{display: flex; flex-direction: column; gap: var(--s3);}\n#xsIn4 > *{flex: none;}\n.xstep.rail.locked > .rail{cursor: default;}\n.xstep.rail.locked{opacity: .45;}\n.xstep.rail.locked:hover{border-color: var(--panel-border);}\n.steps .xstep{min-width: 0;}\n.steps #xsIn1, .steps #xsIn1 > .editor{min-width: 0;}\n.veil{position: fixed; inset: 0; background: var(--overlay); display: grid; place-items: center; padding: var(--s5); z-index: 50;}\n.lock{width: min(620px, 100%); background: var(--lock-bg); color: var(--lock-text); border-radius: var(--r3); padding: var(--s5); box-shadow: var(--shadow-2);}\n.lock .big{font-size: var(--t-2xl); font-weight: 700; letter-spacing: -.02em;}\n.lock .why{margin-top: var(--s2); font-size: var(--t-md); opacity: .92;}\n.lock .bar{margin: var(--s4) 0 var(--s3); background: color-mix(in srgb, currentColor 22%, transparent);}\n.lock .bar > i{background: currentColor;}\n.lock .foot{display: flex; align-items: center; gap: var(--s3); font-size: var(--t-sm);}\n.lock .foot .btn{margin-left: auto; background: transparent; color: inherit; border-color: currentColor;}\n.lock .foot .btn:hover{background: color-mix(in srgb, currentColor 14%, transparent);}\n.dialog{width: min(680px, 100%); max-height: 639.24px; display: flex; flex-direction: column; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--r3); box-shadow: var(--shadow-2); overflow: hidden;}\n.dialog.narrow{width: min(470px, 100%);}\n.dialog > header{padding: var(--s4) var(--s5); border-bottom: 1px solid var(--border);}\n.dialog > header .big{font-size: var(--t-xl); font-weight: 700;}\n.dialog > .in{padding: var(--s4) var(--s5); overflow-y: auto; min-height: 0; display: grid; gap: var(--s3);}\n.dialog > footer{padding: var(--s3) var(--s5); border-top: 1px solid var(--border); background: var(--surface-2); display: flex; gap: var(--s2); justify-content: flex-end;}\n.kv{display: grid; grid-template-columns: 96px 1fr; gap: var(--s2) var(--s3); font-size: var(--t-md);}\n.kv dt{color: var(--text-muted); font-size: var(--t-sm); padding-top: 2px;}\n.kv dd{margin: 0;}\n[data-view]{display: none;}\n[data-view].on{display: grid;}","scenes":{"ea0b071230":{"html":"\n\u003cdiv class=\"app\">\n\n\u003caside class=\"nav\">\n\n\u003cdiv class=\"brand\">\n\u003csvg class=\"wm\" viewBox=\"0 0 236.9 82.9\" role=\"img\" aria-label=\"원장톡\">\n\u003ctitle>원장톡\u003c/title>\n\u003cpath transform=\"translate(-2.80 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M43 -261Q28 -266 28 -282Q28 -297 43 -304Q57 -310 80 -310H609V-492H516Q508 -434 449.0 -402.0Q390 -370 304 -370Q212 -370 151.5 -407.0Q91 -444 91 -508V-540Q91 -604 151.5 -641.0Q212 -678 304 -678Q393 -678 453.0 -643.5Q513 -609 517 -547H609V-673Q609 -692 630 -698Q643 -702 666 -702Q689 -702 705 -698Q725 -690 725 -673V-112Q725 -96 706 -88Q690 -83 667 -83Q643 -83 629 -88Q609 -95 609 -112V-254H379V-161Q379 -139 348 -133Q328 -131 321 -131Q312 -131 294 -133Q278 -136 270.5 -142.5Q263 -149 263 -161V-254H80Q55 -254 43 -261ZM683 51Q707 51 721 58Q736 66 736 80Q736 97 721 101Q705 107 683 107H187Q180 107 168 105Q152 100 146.0 95.5Q140 91 140 79V-101Q140 -122 173 -128Q189 -130 199 -130Q206 -130 226 -128Q242 -125 249.5 -119.0Q257 -113 257 -101V51ZM304 -622Q260 -622 231.5 -599.5Q203 -577 203 -540V-508Q203 -471 231.5 -448.5Q260 -426 304 -426Q348 -426 376.5 -448.5Q405 -471 405 -508V-540Q405 -577 376.5 -599.5Q348 -622 304 -622Z\">\u003c/path>\n\u003cpath transform=\"translate(78.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M438 -157Q374 -157 337.0 -126.0Q300 -95 300 -51V-35Q300 9 337.0 40.0Q374 71 438 71Q502 71 539.0 40.0Q576 9 576 -35V-51Q576 -95 539.0 -126.0Q502 -157 438 -157ZM438 -213Q549 -213 620.5 -169.0Q692 -125 692 -43Q692 39 620.5 83.0Q549 127 438 127Q327 127 255.5 83.0Q184 39 184 -43Q184 -125 255.5 -169.0Q327 -213 438 -213ZM750 -530Q795 -530 795 -503Q795 -489 781.5 -482.0Q768 -475 750 -475H692V-277Q692 -266 684.5 -260.0Q677 -254 661 -251Q645 -249 635 -249Q620 -249 606 -252Q589 -256 582.0 -261.0Q575 -266 575 -277V-672Q575 -693 606 -700Q624 -702 634 -702Q644 -702 660 -700Q676 -695 684.0 -689.0Q692 -683 692 -672V-530ZM151 -290Q141 -279 133.5 -274.5Q126 -270 113 -270Q85 -270 61 -278Q51 -281 44.5 -287.5Q38 -294 38 -301Q38 -306 41 -309L224 -503V-612H88Q63 -612 51 -619Q37 -624 37 -640Q37 -653 51 -661Q65 -667 88 -667H460Q482 -667 497 -661Q512 -654 512 -640Q512 -624 497 -619Q483 -612 460 -612H339V-503L515 -323Q517 -321 517 -315Q517 -305 513 -301L512 -300Q509 -297 504.5 -295.0Q500 -293 494 -291Q474 -286 454 -286Q437 -286 424.5 -289.0Q412 -292 404 -301L281 -431Z\">\u003c/path>\n\u003cpath transform=\"translate(160.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M632 -156Q647 -151 653.0 -146.0Q659 -141 659 -130V78Q659 99 627 105Q609 107 600 107Q590 107 574 105Q568 104 552 97Q542 89 542 78V-103H185Q161 -103 149 -110Q134 -115 134 -130Q134 -147 149 -151Q163 -157 185 -157H611Q624 -157 632 -156ZM165 -371Q137 -377 137 -396V-657Q137 -669 143.0 -674.0Q149 -679 164 -683Q177 -686 195 -686H615Q637 -686 652 -680Q667 -673 667 -659Q667 -645 652 -637Q638 -630 615 -630H254V-554H607Q629 -554 644 -548Q659 -541 659 -527Q659 -521 655.0 -514.5Q651 -508 644 -505Q629 -499 607 -499H254V-423H615Q637 -423 652 -417Q667 -410 667 -396Q667 -381 652 -376Q638 -369 615 -369H455V-289H715Q737 -289 752 -283Q767 -276 767 -262Q767 -246 752 -241Q738 -234 715 -234H81Q56 -234 44 -241Q30 -246 30 -262Q30 -275 44 -283Q58 -289 81 -289H339V-369H183Q174 -370 165 -371Z\">\u003c/path>\n\u003c/svg>\n\u003csmall>카카오톡 자동발송\u003c/small>\n\u003c/div>\n\u003cbutton data-nav=\"send\" aria-current=\"true\">발송\u003c/button>\n\u003cbutton data-nav=\"hist\" aria-current=\"false\">발송내역\u003c/button>\n\u003cbutton data-nav=\"book\" aria-current=\"false\">주소록\u003c/button>\n\n\u003cbutton data-nav=\"msg\" aria-current=\"false\">메시지함\u003c/button>\n\u003cdiv class=\"spacer\">\u003c/div>\n\u003cdiv class=\"sep\">\u003c/div>\n\u003cbutton data-nav=\"conf\" aria-current=\"false\">설정\u003c/button>\n\u003cdiv class=\"foot\" id=\"appFoot\">v1.3.21 · 카톡 26.8.0.5310\u003c/div>\n\u003c/aside>\n\u003cdiv class=\"main\">\n\n\n\u003cnav class=\"tabs\" id=\"tabs\">\n\u003cspan class=\"title\" id=\"tabTitle\">발송\u003c/span>\n\u003cspan class=\"tabbtns\" id=\"tabBtns\">\u003c/span>\n\u003c/nav>\n\n\u003cdiv class=\"work steps s1 on\" data-view=\"send\">\n\n\u003csection class=\"xstep\" data-step=\"1\">\n\u003cheader>\u003cspan class=\"no\">1\u003c/span>\u003cspan class=\"nm\">메시지\u003c/span>\n\u003cspan class=\"right\">\u003cspan class=\"hint\" id=\"xsHint1\">0자 · 첨부 \u003cb class=\"num\">0\u003c/b>/3개 0.0MB\u003c/span>\u003c/span>\n\u003c/header>\n\n\u003cdiv class=\"in scroll\" id=\"xsIn1\">\n\u003cdiv class=\"row nowrap\" style=\"min-width:0\">\n\n\n\u003cspan class=\"seg ctl\" id=\"xsModeSeg\">\n\u003clabel>\u003cinput type=\"radio\" name=\"xsmode\" value=\"new\" checked=\"\">\n\u003cspan>새로 작성\u003c/span>\u003c/label>\n\u003clabel>\u003cinput type=\"radio\" name=\"xsmode\" value=\"saved\">\n\u003cspan>저장된 메시지로\u003c/span>\u003c/label>\n\u003c/span>\n\n\u003cspan class=\"row nowrap\" id=\"xsModeSide\" style=\"min-width:0; flex:1\">\u003clabel class=\"check\" style=\"flex:none; align-items:center\">\u003cinput type=\"checkbox\" id=\"xsSave\">\u003cspan class=\"cap\">메시지함에 저장\u003c/span>\u003c/label>\u003c/span>\n\u003c/div>\n\n\u003cdiv class=\"vars\" id=\"xsVarsRow\" style=\"margin-top:var(--s3)\">\u003cspan class=\"lbl\">변수\u003c/span>\u003cspan class=\"v  \" aria-pressed=\"false\">\n\u003cbutton class=\"vk\" data-ins=\"이름\" title=\"주소록의 표시용 이름 — 누르면 하나 더 넣는다\">이름\u003c/button>\n\u003c/span>\u003cspan class=\"v  \" aria-pressed=\"false\">\n\u003cbutton class=\"vk\" data-ins=\"메모1\" title=\"주소록 메모1 — 누르면 하나 더 넣는다\">메모1\u003c/button>\n\u003c/span>\u003cspan class=\"v  \" aria-pressed=\"false\">\n\u003cbutton class=\"vk\" data-ins=\"메모2\" title=\"주소록 메모2 — 누르면 하나 더 넣는다\">메모2\u003c/button>\n\u003c/span>\u003cbutton class=\"btn ghost sm\" id=\"xsAddVar\" style=\"margin-left:var(--s2)\">＋ 변수\u003c/button>\u003c/div>\n\u003cdiv class=\"editor\" style=\"margin-top:var(--s2)\">\n\u003cdiv class=\"hl\" id=\"xsHl\" aria-hidden=\"true\">\n\u003c/div>\n\u003ctextarea id=\"xsBody\" placeholder=\"보낼 내용 — 사람마다 달라지는 자리는 [＋ 변수] 로 만듭니다\">\u003c/textarea>\n\u003c/div>\n\u003cdiv class=\"drop tile\" id=\"xsDrop\" style=\"margin-top:var(--s2)\">＋ 파일 · 끌어놓기 · 붙여넣기(Ctrl+V)\n\u003cspan class=\"faint\">첨부파일은 최대 3개 · 개당 100MB\u003c/span>\u003c/div>\n\u003cdiv class=\"faint small\" id=\"xsModeNote\" style=\"margin-top:var(--s2)\">\u003c/div>\n\u003c/div>\n\u003cfooter>\u003cspan class=\"faint\" id=\"xsFoot1\">\u003cspan style=\"color:var(--flag-warn)\">메시지를 작성해주세요.\u003c/span>\u003c/span>\n\u003cspan style=\"margin-left:auto\">\u003cbutton class=\"btn sm\" data-xsnext=\"1\" aria-disabled=\"true\">다음으로\u003c/button>\u003c/span>\u003c/footer>\n\u003c/section>\n\n\u003csection class=\"xstep rail locked\" data-step=\"2\">\n\u003cdiv class=\"rail\" data-rail=\"2\">\u003cspan class=\"no\">2\u003c/span>\u003cspan class=\"nm\">발송대상\u003c/span>\u003c/div>\n\n\u003c/section>\n\n\u003csection class=\"xstep rail locked\" data-step=\"3\">\n\u003cdiv class=\"rail\" data-rail=\"3\">\u003cspan class=\"no\">3\u003c/span>\u003cspan class=\"nm\">검증\u003c/span>\u003cspan class=\"sum\">해당 없음\u003c/span>\u003c/div>\n\u003c/section>\n\n\u003csection class=\"xstep rail locked\" data-step=\"4\">\n\u003cdiv class=\"rail\" data-rail=\"4\">\u003cspan class=\"no\">4\u003c/span>\u003cspan class=\"nm\">발송\u003c/span>\u003cspan class=\"sum\">바로발송\u003c/span>\u003c/div>\n\n\u003c/section>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"actionbar\">\n\u003cdiv class=\"sum\" id=\"barSum\">\u003c/div>\n\u003cdiv class=\"right\" id=\"barAct\">\u003cbutton class=\"btn ghost\" id=\"xsReset\">초기화\u003c/button>\u003cbutton class=\"btn ghost\" id=\"xsPv\" aria-disabled=\"true\">미리보기\u003c/button>\u003cbutton class=\"btn\" id=\"xsGo\" aria-disabled=\"true\">발송\u003c/button>\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"veil\" id=\"askVeil\" style=\"z-index: 50;\">\u003cdiv class=\"dialog narrow\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"askTitle\">\n\u003cheader>\u003cdiv class=\"big\" id=\"askTitle\">시작 점검\u003c/div>\u003c/header>\n\u003cdiv class=\"in\">\u003cdiv id=\"askBody\">\u003cp>확인해 주실 것이 \u003cb>2건\u003c/b> 있습니다.\u003c/p>\u003cul class=\"bullets\">\u003cli>\u003cb>카카오톡이 실행되어 있지 않습니다\u003c/b>\u003cbr>\u003cspan class=\"faint small\">예약 1건이 걸려 있는데, 카카오톡이 꺼져 있으면 발송하지 못합니다.\u003cbr>→ 카카오톡을 켜고 로그인해 주세요.\u003c/span>\u003c/li>\u003cli>\u003cb>앱이 꺼져 있던 사이 예약 1건이 나가지 못했습니다\u003c/b>\u003cbr>\u003cspan class=\"faint small\">예약 시각에 원장톡이 켜져 있어야 발송됩니다.\u003cbr>→ 발송내역에서 다시 보낼 수 있습니다.\u003c/span>\u003c/li>\u003c/ul>\u003c/div>\u003c/div>\n\u003cfooter>\n\n\u003cbutton class=\"btn\" id=\"askYes\">확인\u003c/button>\n\u003c/footer>\n\u003c/div>\u003c/div>\n","htmlAttrs":{"data-skin":"indigo"},"bodyAttrs":{"style":"overflow: hidden;"}},"825069f6db":{"html":"\n\u003cdiv class=\"app\">\n\n\u003caside class=\"nav\">\n\n\u003cdiv class=\"brand\">\n\u003csvg class=\"wm\" viewBox=\"0 0 236.9 82.9\" role=\"img\" aria-label=\"원장톡\">\n\u003ctitle>원장톡\u003c/title>\n\u003cpath transform=\"translate(-2.80 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M43 -261Q28 -266 28 -282Q28 -297 43 -304Q57 -310 80 -310H609V-492H516Q508 -434 449.0 -402.0Q390 -370 304 -370Q212 -370 151.5 -407.0Q91 -444 91 -508V-540Q91 -604 151.5 -641.0Q212 -678 304 -678Q393 -678 453.0 -643.5Q513 -609 517 -547H609V-673Q609 -692 630 -698Q643 -702 666 -702Q689 -702 705 -698Q725 -690 725 -673V-112Q725 -96 706 -88Q690 -83 667 -83Q643 -83 629 -88Q609 -95 609 -112V-254H379V-161Q379 -139 348 -133Q328 -131 321 -131Q312 -131 294 -133Q278 -136 270.5 -142.5Q263 -149 263 -161V-254H80Q55 -254 43 -261ZM683 51Q707 51 721 58Q736 66 736 80Q736 97 721 101Q705 107 683 107H187Q180 107 168 105Q152 100 146.0 95.5Q140 91 140 79V-101Q140 -122 173 -128Q189 -130 199 -130Q206 -130 226 -128Q242 -125 249.5 -119.0Q257 -113 257 -101V51ZM304 -622Q260 -622 231.5 -599.5Q203 -577 203 -540V-508Q203 -471 231.5 -448.5Q260 -426 304 -426Q348 -426 376.5 -448.5Q405 -471 405 -508V-540Q405 -577 376.5 -599.5Q348 -622 304 -622Z\">\u003c/path>\n\u003cpath transform=\"translate(78.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M438 -157Q374 -157 337.0 -126.0Q300 -95 300 -51V-35Q300 9 337.0 40.0Q374 71 438 71Q502 71 539.0 40.0Q576 9 576 -35V-51Q576 -95 539.0 -126.0Q502 -157 438 -157ZM438 -213Q549 -213 620.5 -169.0Q692 -125 692 -43Q692 39 620.5 83.0Q549 127 438 127Q327 127 255.5 83.0Q184 39 184 -43Q184 -125 255.5 -169.0Q327 -213 438 -213ZM750 -530Q795 -530 795 -503Q795 -489 781.5 -482.0Q768 -475 750 -475H692V-277Q692 -266 684.5 -260.0Q677 -254 661 -251Q645 -249 635 -249Q620 -249 606 -252Q589 -256 582.0 -261.0Q575 -266 575 -277V-672Q575 -693 606 -700Q624 -702 634 -702Q644 -702 660 -700Q676 -695 684.0 -689.0Q692 -683 692 -672V-530ZM151 -290Q141 -279 133.5 -274.5Q126 -270 113 -270Q85 -270 61 -278Q51 -281 44.5 -287.5Q38 -294 38 -301Q38 -306 41 -309L224 -503V-612H88Q63 -612 51 -619Q37 -624 37 -640Q37 -653 51 -661Q65 -667 88 -667H460Q482 -667 497 -661Q512 -654 512 -640Q512 -624 497 -619Q483 -612 460 -612H339V-503L515 -323Q517 -321 517 -315Q517 -305 513 -301L512 -300Q509 -297 504.5 -295.0Q500 -293 494 -291Q474 -286 454 -286Q437 -286 424.5 -289.0Q412 -292 404 -301L281 -431Z\">\u003c/path>\n\u003cpath transform=\"translate(160.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M632 -156Q647 -151 653.0 -146.0Q659 -141 659 -130V78Q659 99 627 105Q609 107 600 107Q590 107 574 105Q568 104 552 97Q542 89 542 78V-103H185Q161 -103 149 -110Q134 -115 134 -130Q134 -147 149 -151Q163 -157 185 -157H611Q624 -157 632 -156ZM165 -371Q137 -377 137 -396V-657Q137 -669 143.0 -674.0Q149 -679 164 -683Q177 -686 195 -686H615Q637 -686 652 -680Q667 -673 667 -659Q667 -645 652 -637Q638 -630 615 -630H254V-554H607Q629 -554 644 -548Q659 -541 659 -527Q659 -521 655.0 -514.5Q651 -508 644 -505Q629 -499 607 -499H254V-423H615Q637 -423 652 -417Q667 -410 667 -396Q667 -381 652 -376Q638 -369 615 -369H455V-289H715Q737 -289 752 -283Q767 -276 767 -262Q767 -246 752 -241Q738 -234 715 -234H81Q56 -234 44 -241Q30 -246 30 -262Q30 -275 44 -283Q58 -289 81 -289H339V-369H183Q174 -370 165 -371Z\">\u003c/path>\n\u003c/svg>\n\u003csmall>카카오톡 자동발송\u003c/small>\n\u003c/div>\n\u003cbutton data-nav=\"send\" aria-current=\"true\">발송\u003c/button>\n\u003cbutton data-nav=\"hist\" aria-current=\"false\">발송내역\u003c/button>\n\u003cbutton data-nav=\"book\" aria-current=\"false\">주소록\u003c/button>\n\n\u003cbutton data-nav=\"msg\" aria-current=\"false\">메시지함\u003c/button>\n\u003cdiv class=\"spacer\">\u003c/div>\n\u003cdiv class=\"sep\">\u003c/div>\n\u003cbutton data-nav=\"conf\" aria-current=\"false\">설정\u003c/button>\n\u003cdiv class=\"foot\" id=\"appFoot\">v1.3.21 · 카톡 26.8.0.5310\u003c/div>\n\u003c/aside>\n\u003cdiv class=\"main\">\n\n\n\u003cnav class=\"tabs\" id=\"tabs\">\n\u003cspan class=\"title\" id=\"tabTitle\">발송\u003c/span>\n\u003cspan class=\"tabbtns\" id=\"tabBtns\">\u003c/span>\n\u003c/nav>\n\n\u003cdiv class=\"work steps on s4\" data-view=\"send\">\n\n\u003csection class=\"xstep rail done\" data-step=\"1\">\n\u003cdiv class=\"rail\" data-rail=\"1\">\u003cspan class=\"no\">✓\u003c/span>\u003cspan class=\"nm\">메시지\u003c/span>\u003cspan class=\"sum\">새로 작성\u003c/span>\u003c/div>\n\n\u003c/section>\n\n\u003csection class=\"xstep rail done\" data-step=\"2\">\n\u003cdiv class=\"rail\" data-rail=\"2\">\u003cspan class=\"no\">✓\u003c/span>\u003cspan class=\"nm\">발송대상\u003c/span>\u003cspan class=\"sum\">4명\u003c/span>\u003c/div>\n\n\u003c/section>\n\n\u003csection class=\"xstep rail locked\" data-step=\"3\">\n\u003cdiv class=\"rail\" data-rail=\"3\">\u003cspan class=\"no\">3\u003c/span>\u003cspan class=\"nm\">검증\u003c/span>\u003cspan class=\"sum\">해당 없음\u003c/span>\u003c/div>\n\u003c/section>\n\n\u003csection class=\"xstep\" data-step=\"4\">\n\u003cheader>\u003cspan class=\"no\">4\u003c/span>\u003cspan class=\"nm\">발송\u003c/span>\n\u003cspan class=\"right\">\u003cspan class=\"hint\" id=\"xsHint4\">\u003c/span>\u003c/span>\n\u003c/header>\n\n\u003cdiv class=\"in scroll\" id=\"xsIn4\">\n\u003cdiv class=\"panel thin cq\">\n\u003cheader>발송시기 \u003cspan class=\"hint\">언제 보낼지 정해주세요\u003c/span>\u003c/header>\n\u003cdiv class=\"in\">\n\u003cdiv class=\"row\">\n\u003cspan class=\"lbl nowrap\" style=\"margin-right:var(--s2)\">시기설정\u003c/span>\n\n\u003cspan class=\"seg ctl\" id=\"xsKindSeg\">\n\u003clabel>\u003cinput type=\"radio\" name=\"xskind\" value=\"now\" checked=\"\">\n\u003cspan>바로발송\u003c/span>\u003c/label>\n\u003clabel>\u003cinput type=\"radio\" name=\"xskind\" value=\"once\">\n\u003cspan>예약발송\u003c/span>\u003c/label>\n\u003c/span>\n\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003cdiv class=\"panel thin\">\n\u003cheader>발송 설정 \u003cspan class=\"hint\">메시지 세부사항을 설정해주세요\u003c/span>\u003c/header>\n\u003cdiv class=\"in\">\n\u003cdiv class=\"row\" style=\"gap:var(--s5)\">\n\n\u003cspan class=\"row nowrap off\" id=\"xsOrdWrap\">\n\u003cspan class=\"lbl\">보내는 순서\u003c/span>\n\u003cspan class=\"seg\" id=\"xsOrdSeg\">\n\u003clabel>\u003cinput type=\"radio\" name=\"xsord\" value=\"first\" checked=\"\" disabled=\"\">\n\u003cspan>메시지 먼저\u003c/span>\u003c/label>\n\u003clabel>\u003cinput type=\"radio\" name=\"xsord\" value=\"last\" disabled=\"\">\n\u003cspan>첨부 먼저\u003c/span>\u003c/label>\n\u003c/span>\n\u003c/span>\n\u003clabel class=\"check\" style=\"align-items:center\">\n\u003cinput type=\"checkbox\" id=\"xsUnread\">\n\u003cspan class=\"cap\">안읽은 메시지가 있는 채팅방에도 보내기\u003c/span>\n\u003c/label>\n\n\u003cspan class=\"small\" id=\"xsUnreadHint\">\u003c/span>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003cdiv class=\"panel thin\">\n\u003cheader>발송요약\u003c/header>\n\u003cdiv class=\"in\">\u003cdl class=\"kv\" id=\"xsSummary\">\u003cdt>발송대상\u003c/dt>\u003cdd>\u003cb class=\"num\">4\u003c/b>명\u003c/dd>\u003cdt>발송내용\u003c/dt>\u003cdd>본문 1건 + 첨부 0개\u003c/dd>\u003cdt>변수사용\u003c/dt>\u003cdd>\u003cspan class=\"faint\">없음\u003c/span>\u003c/dd>\u003cdt>발송일시\u003c/dt>\u003cdd>바로발송\u003c/dd>\u003c/dl>\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003cfooter>\u003cspan class=\"faint\" id=\"xsFoot4\">\u003c/span>\n\u003cspan style=\"margin-left:auto\">\u003c/span>\u003c/footer>\n\u003c/section>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"actionbar\">\n\u003cdiv class=\"sum\" id=\"barSum\">\u003c/div>\n\u003cdiv class=\"right\" id=\"barAct\">\u003cbutton class=\"btn ghost\" id=\"xsReset\">초기화\u003c/button>\u003cbutton class=\"btn ghost\" id=\"xsPv\">미리보기\u003c/button>\u003cbutton class=\"btn\" id=\"xsGo\">발송\u003c/button>\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n","htmlAttrs":{"data-skin":"indigo"},"bodyAttrs":{"style":""}},"33d9326485":{"html":"\n\u003cdiv class=\"app\">\n\n\u003caside class=\"nav\">\n\n\u003cdiv class=\"brand\">\n\u003csvg class=\"wm\" viewBox=\"0 0 236.9 82.9\" role=\"img\" aria-label=\"원장톡\">\n\u003ctitle>원장톡\u003c/title>\n\u003cpath transform=\"translate(-2.80 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M43 -261Q28 -266 28 -282Q28 -297 43 -304Q57 -310 80 -310H609V-492H516Q508 -434 449.0 -402.0Q390 -370 304 -370Q212 -370 151.5 -407.0Q91 -444 91 -508V-540Q91 -604 151.5 -641.0Q212 -678 304 -678Q393 -678 453.0 -643.5Q513 -609 517 -547H609V-673Q609 -692 630 -698Q643 -702 666 -702Q689 -702 705 -698Q725 -690 725 -673V-112Q725 -96 706 -88Q690 -83 667 -83Q643 -83 629 -88Q609 -95 609 -112V-254H379V-161Q379 -139 348 -133Q328 -131 321 -131Q312 -131 294 -133Q278 -136 270.5 -142.5Q263 -149 263 -161V-254H80Q55 -254 43 -261ZM683 51Q707 51 721 58Q736 66 736 80Q736 97 721 101Q705 107 683 107H187Q180 107 168 105Q152 100 146.0 95.5Q140 91 140 79V-101Q140 -122 173 -128Q189 -130 199 -130Q206 -130 226 -128Q242 -125 249.5 -119.0Q257 -113 257 -101V51ZM304 -622Q260 -622 231.5 -599.5Q203 -577 203 -540V-508Q203 -471 231.5 -448.5Q260 -426 304 -426Q348 -426 376.5 -448.5Q405 -471 405 -508V-540Q405 -577 376.5 -599.5Q348 -622 304 -622Z\">\u003c/path>\n\u003cpath transform=\"translate(78.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M438 -157Q374 -157 337.0 -126.0Q300 -95 300 -51V-35Q300 9 337.0 40.0Q374 71 438 71Q502 71 539.0 40.0Q576 9 576 -35V-51Q576 -95 539.0 -126.0Q502 -157 438 -157ZM438 -213Q549 -213 620.5 -169.0Q692 -125 692 -43Q692 39 620.5 83.0Q549 127 438 127Q327 127 255.5 83.0Q184 39 184 -43Q184 -125 255.5 -169.0Q327 -213 438 -213ZM750 -530Q795 -530 795 -503Q795 -489 781.5 -482.0Q768 -475 750 -475H692V-277Q692 -266 684.5 -260.0Q677 -254 661 -251Q645 -249 635 -249Q620 -249 606 -252Q589 -256 582.0 -261.0Q575 -266 575 -277V-672Q575 -693 606 -700Q624 -702 634 -702Q644 -702 660 -700Q676 -695 684.0 -689.0Q692 -683 692 -672V-530ZM151 -290Q141 -279 133.5 -274.5Q126 -270 113 -270Q85 -270 61 -278Q51 -281 44.5 -287.5Q38 -294 38 -301Q38 -306 41 -309L224 -503V-612H88Q63 -612 51 -619Q37 -624 37 -640Q37 -653 51 -661Q65 -667 88 -667H460Q482 -667 497 -661Q512 -654 512 -640Q512 -624 497 -619Q483 -612 460 -612H339V-503L515 -323Q517 -321 517 -315Q517 -305 513 -301L512 -300Q509 -297 504.5 -295.0Q500 -293 494 -291Q474 -286 454 -286Q437 -286 424.5 -289.0Q412 -292 404 -301L281 -431Z\">\u003c/path>\n\u003cpath transform=\"translate(160.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M632 -156Q647 -151 653.0 -146.0Q659 -141 659 -130V78Q659 99 627 105Q609 107 600 107Q590 107 574 105Q568 104 552 97Q542 89 542 78V-103H185Q161 -103 149 -110Q134 -115 134 -130Q134 -147 149 -151Q163 -157 185 -157H611Q624 -157 632 -156ZM165 -371Q137 -377 137 -396V-657Q137 -669 143.0 -674.0Q149 -679 164 -683Q177 -686 195 -686H615Q637 -686 652 -680Q667 -673 667 -659Q667 -645 652 -637Q638 -630 615 -630H254V-554H607Q629 -554 644 -548Q659 -541 659 -527Q659 -521 655.0 -514.5Q651 -508 644 -505Q629 -499 607 -499H254V-423H615Q637 -423 652 -417Q667 -410 667 -396Q667 -381 652 -376Q638 -369 615 -369H455V-289H715Q737 -289 752 -283Q767 -276 767 -262Q767 -246 752 -241Q738 -234 715 -234H81Q56 -234 44 -241Q30 -246 30 -262Q30 -275 44 -283Q58 -289 81 -289H339V-369H183Q174 -370 165 -371Z\">\u003c/path>\n\u003c/svg>\n\u003csmall>카카오톡 자동발송\u003c/small>\n\u003c/div>\n\u003cbutton data-nav=\"send\" aria-current=\"true\">발송\u003c/button>\n\u003cbutton data-nav=\"hist\" aria-current=\"false\">발송내역\u003c/button>\n\u003cbutton data-nav=\"book\" aria-current=\"false\">주소록\u003c/button>\n\n\u003cbutton data-nav=\"msg\" aria-current=\"false\">메시지함\u003c/button>\n\u003cdiv class=\"spacer\">\u003c/div>\n\u003cdiv class=\"sep\">\u003c/div>\n\u003cbutton data-nav=\"conf\" aria-current=\"false\">설정\u003c/button>\n\u003cdiv class=\"foot\" id=\"appFoot\">v1.3.21 · 카톡 26.8.0.5310\u003c/div>\n\u003c/aside>\n\u003cdiv class=\"main\">\n\n\n\u003cnav class=\"tabs\" id=\"tabs\">\n\u003cspan class=\"title\" id=\"tabTitle\">발송\u003c/span>\n\u003cspan class=\"tabbtns\" id=\"tabBtns\">\u003c/span>\n\u003c/nav>\n\n\u003cdiv class=\"work steps on s4\" data-view=\"send\">\n\n\u003csection class=\"xstep rail done\" data-step=\"1\">\n\u003cdiv class=\"rail\" data-rail=\"1\">\u003cspan class=\"no\">✓\u003c/span>\u003cspan class=\"nm\">메시지\u003c/span>\u003cspan class=\"sum\">새로 작성\u003c/span>\u003c/div>\n\n\u003c/section>\n\n\u003csection class=\"xstep rail done\" data-step=\"2\">\n\u003cdiv class=\"rail\" data-rail=\"2\">\u003cspan class=\"no\">✓\u003c/span>\u003cspan class=\"nm\">발송대상\u003c/span>\u003cspan class=\"sum\">4명\u003c/span>\u003c/div>\n\n\u003c/section>\n\n\u003csection class=\"xstep rail locked\" data-step=\"3\">\n\u003cdiv class=\"rail\" data-rail=\"3\">\u003cspan class=\"no\">3\u003c/span>\u003cspan class=\"nm\">검증\u003c/span>\u003cspan class=\"sum\">해당 없음\u003c/span>\u003c/div>\n\u003c/section>\n\n\u003csection class=\"xstep\" data-step=\"4\">\n\u003cheader>\u003cspan class=\"no\">4\u003c/span>\u003cspan class=\"nm\">발송\u003c/span>\n\u003cspan class=\"right\">\u003cspan class=\"hint\" id=\"xsHint4\">\u003c/span>\u003c/span>\n\u003c/header>\n\n\u003cdiv class=\"in scroll\" id=\"xsIn4\">\n\u003cdiv class=\"panel thin cq\">\n\u003cheader>발송시기 \u003cspan class=\"hint\">언제 보낼지 정해주세요\u003c/span>\u003c/header>\n\u003cdiv class=\"in\">\n\u003cdiv class=\"row\">\n\u003cspan class=\"lbl nowrap\" style=\"margin-right:var(--s2)\">시기설정\u003c/span>\n\n\u003cspan class=\"seg ctl\" id=\"xsKindSeg\">\n\u003clabel>\u003cinput type=\"radio\" name=\"xskind\" value=\"now\" checked=\"\">\n\u003cspan>바로발송\u003c/span>\u003c/label>\n\u003clabel>\u003cinput type=\"radio\" name=\"xskind\" value=\"once\">\n\u003cspan>예약발송\u003c/span>\u003c/label>\n\u003c/span>\n\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003cdiv class=\"panel thin\">\n\u003cheader>발송 설정 \u003cspan class=\"hint\">메시지 세부사항을 설정해주세요\u003c/span>\u003c/header>\n\u003cdiv class=\"in\">\n\u003cdiv class=\"row\" style=\"gap:var(--s5)\">\n\n\u003cspan class=\"row nowrap off\" id=\"xsOrdWrap\">\n\u003cspan class=\"lbl\">보내는 순서\u003c/span>\n\u003cspan class=\"seg\" id=\"xsOrdSeg\">\n\u003clabel>\u003cinput type=\"radio\" name=\"xsord\" value=\"first\" checked=\"\" disabled=\"\">\n\u003cspan>메시지 먼저\u003c/span>\u003c/label>\n\u003clabel>\u003cinput type=\"radio\" name=\"xsord\" value=\"last\" disabled=\"\">\n\u003cspan>첨부 먼저\u003c/span>\u003c/label>\n\u003c/span>\n\u003c/span>\n\u003clabel class=\"check\" style=\"align-items:center\">\n\u003cinput type=\"checkbox\" id=\"xsUnread\">\n\u003cspan class=\"cap\">안읽은 메시지가 있는 채팅방에도 보내기\u003c/span>\n\u003c/label>\n\n\u003cspan class=\"small\" id=\"xsUnreadHint\">\u003c/span>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003cdiv class=\"panel thin\">\n\u003cheader>발송요약\u003c/header>\n\u003cdiv class=\"in\">\u003cdl class=\"kv\" id=\"xsSummary\">\u003cdt>발송대상\u003c/dt>\u003cdd>\u003cb class=\"num\">4\u003c/b>명\u003c/dd>\u003cdt>발송내용\u003c/dt>\u003cdd>본문 1건 + 첨부 0개\u003c/dd>\u003cdt>변수사용\u003c/dt>\u003cdd>\u003cspan class=\"faint\">없음\u003c/span>\u003c/dd>\u003cdt>발송일시\u003c/dt>\u003cdd>바로발송\u003c/dd>\u003c/dl>\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003cfooter>\u003cspan class=\"faint\" id=\"xsFoot4\">\u003c/span>\n\u003cspan style=\"margin-left:auto\">\u003c/span>\u003c/footer>\n\u003c/section>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"actionbar\">\n\u003cdiv class=\"sum\" id=\"barSum\">\u003c/div>\n\u003cdiv class=\"right\" id=\"barAct\">\u003cbutton class=\"btn ghost\" id=\"xsReset\">초기화\u003c/button>\u003cbutton class=\"btn ghost\" id=\"xsPv\">미리보기\u003c/button>\u003cbutton class=\"btn\" id=\"xsGo\">발송\u003c/button>\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"veil\" id=\"cfVeil\" style=\"z-index: 50;\">\u003cdiv class=\"dialog\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"cfVeilTitle\">\n\u003cheader>\u003cdiv class=\"big\" id=\"cfVeilTitle\">발송내용 확인\u003c/div>\u003c/header>\n\u003cdiv class=\"in\">\n\u003cdl class=\"kv\">\n\u003cdt>발송대상\u003c/dt>\u003cdd>\u003cb class=\"num\" id=\"cfN\">4\u003c/b>명\n\u003cspan class=\"muted\" id=\"cfKind\">(개인 4 · 단톡 0)\u003c/span>\u003c/dd>\n\u003cdt>발송일시\u003c/dt>\u003cdd id=\"cfWhen\">바로발송\u003c/dd>\n\u003cdt>발송내용\u003c/dt>\u003cdd id=\"cfWhat\">본문1건 + 첨부0개\u003c/dd>\n\u003cdt>발송순서\u003c/dt>\u003cdd id=\"cfOrd\">메시지 먼저\u003c/dd>\n\u003c/dl>\n\n\u003cdiv class=\"note-box warn\">\u003cspan class=\"ic\">!\u003c/span>\n\u003cdiv>발송하는 동안 카카오톡은 잠기게 되어 사용하실 수 없습니다.\u003c/div>\u003c/div>\n\u003c/div>\n\u003cfooter>\n\u003cbutton class=\"btn ghost\" id=\"cfNo\">뒤로\u003c/button>\n\u003cbutton class=\"btn\" id=\"cfYes\">발송\u003c/button>\n\u003c/footer>\n\u003c/div>\u003c/div>\n","htmlAttrs":{"data-skin":"indigo"},"bodyAttrs":{"style":"overflow: hidden;"}},"fe8c021899":{"html":"\n\u003cdiv class=\"app\">\n\n\u003caside class=\"nav\">\n\n\u003cdiv class=\"brand\">\n\u003csvg class=\"wm\" viewBox=\"0 0 236.9 82.9\" role=\"img\" aria-label=\"원장톡\">\n\u003ctitle>원장톡\u003c/title>\n\u003cpath transform=\"translate(-2.80 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M43 -261Q28 -266 28 -282Q28 -297 43 -304Q57 -310 80 -310H609V-492H516Q508 -434 449.0 -402.0Q390 -370 304 -370Q212 -370 151.5 -407.0Q91 -444 91 -508V-540Q91 -604 151.5 -641.0Q212 -678 304 -678Q393 -678 453.0 -643.5Q513 -609 517 -547H609V-673Q609 -692 630 -698Q643 -702 666 -702Q689 -702 705 -698Q725 -690 725 -673V-112Q725 -96 706 -88Q690 -83 667 -83Q643 -83 629 -88Q609 -95 609 -112V-254H379V-161Q379 -139 348 -133Q328 -131 321 -131Q312 -131 294 -133Q278 -136 270.5 -142.5Q263 -149 263 -161V-254H80Q55 -254 43 -261ZM683 51Q707 51 721 58Q736 66 736 80Q736 97 721 101Q705 107 683 107H187Q180 107 168 105Q152 100 146.0 95.5Q140 91 140 79V-101Q140 -122 173 -128Q189 -130 199 -130Q206 -130 226 -128Q242 -125 249.5 -119.0Q257 -113 257 -101V51ZM304 -622Q260 -622 231.5 -599.5Q203 -577 203 -540V-508Q203 -471 231.5 -448.5Q260 -426 304 -426Q348 -426 376.5 -448.5Q405 -471 405 -508V-540Q405 -577 376.5 -599.5Q348 -622 304 -622Z\">\u003c/path>\n\u003cpath transform=\"translate(78.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M438 -157Q374 -157 337.0 -126.0Q300 -95 300 -51V-35Q300 9 337.0 40.0Q374 71 438 71Q502 71 539.0 40.0Q576 9 576 -35V-51Q576 -95 539.0 -126.0Q502 -157 438 -157ZM438 -213Q549 -213 620.5 -169.0Q692 -125 692 -43Q692 39 620.5 83.0Q549 127 438 127Q327 127 255.5 83.0Q184 39 184 -43Q184 -125 255.5 -169.0Q327 -213 438 -213ZM750 -530Q795 -530 795 -503Q795 -489 781.5 -482.0Q768 -475 750 -475H692V-277Q692 -266 684.5 -260.0Q677 -254 661 -251Q645 -249 635 -249Q620 -249 606 -252Q589 -256 582.0 -261.0Q575 -266 575 -277V-672Q575 -693 606 -700Q624 -702 634 -702Q644 -702 660 -700Q676 -695 684.0 -689.0Q692 -683 692 -672V-530ZM151 -290Q141 -279 133.5 -274.5Q126 -270 113 -270Q85 -270 61 -278Q51 -281 44.5 -287.5Q38 -294 38 -301Q38 -306 41 -309L224 -503V-612H88Q63 -612 51 -619Q37 -624 37 -640Q37 -653 51 -661Q65 -667 88 -667H460Q482 -667 497 -661Q512 -654 512 -640Q512 -624 497 -619Q483 -612 460 -612H339V-503L515 -323Q517 -321 517 -315Q517 -305 513 -301L512 -300Q509 -297 504.5 -295.0Q500 -293 494 -291Q474 -286 454 -286Q437 -286 424.5 -289.0Q412 -292 404 -301L281 -431Z\">\u003c/path>\n\u003cpath transform=\"translate(160.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M632 -156Q647 -151 653.0 -146.0Q659 -141 659 -130V78Q659 99 627 105Q609 107 600 107Q590 107 574 105Q568 104 552 97Q542 89 542 78V-103H185Q161 -103 149 -110Q134 -115 134 -130Q134 -147 149 -151Q163 -157 185 -157H611Q624 -157 632 -156ZM165 -371Q137 -377 137 -396V-657Q137 -669 143.0 -674.0Q149 -679 164 -683Q177 -686 195 -686H615Q637 -686 652 -680Q667 -673 667 -659Q667 -645 652 -637Q638 -630 615 -630H254V-554H607Q629 -554 644 -548Q659 -541 659 -527Q659 -521 655.0 -514.5Q651 -508 644 -505Q629 -499 607 -499H254V-423H615Q637 -423 652 -417Q667 -410 667 -396Q667 -381 652 -376Q638 -369 615 -369H455V-289H715Q737 -289 752 -283Q767 -276 767 -262Q767 -246 752 -241Q738 -234 715 -234H81Q56 -234 44 -241Q30 -246 30 -262Q30 -275 44 -283Q58 -289 81 -289H339V-369H183Q174 -370 165 -371Z\">\u003c/path>\n\u003c/svg>\n\u003csmall>카카오톡 자동발송\u003c/small>\n\u003c/div>\n\u003cbutton data-nav=\"send\" aria-current=\"true\">발송\u003c/button>\n\u003cbutton data-nav=\"hist\" aria-current=\"false\">발송내역\u003c/button>\n\u003cbutton data-nav=\"book\" aria-current=\"false\">주소록\u003c/button>\n\n\u003cbutton data-nav=\"msg\" aria-current=\"false\">메시지함\u003c/button>\n\u003cdiv class=\"spacer\">\u003c/div>\n\u003cdiv class=\"sep\">\u003c/div>\n\u003cbutton data-nav=\"conf\" aria-current=\"false\">설정\u003c/button>\n\u003cdiv class=\"foot\" id=\"appFoot\">v1.3.21 · 카톡 26.8.0.5310\u003c/div>\n\u003c/aside>\n\u003cdiv class=\"main\">\n\n\n\u003cnav class=\"tabs\" id=\"tabs\">\n\u003cspan class=\"title\" id=\"tabTitle\">발송 진행\u003c/span>\n\u003cspan class=\"tabbtns\" id=\"tabBtns\">\u003c/span>\n\u003c/nav>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"work on\" data-view=\"progress\" style=\"grid-template-columns:1fr\">\n\u003cdiv class=\"panel\">\n\u003cheader>진행 \u003cspan class=\"hint\" id=\"progHint\">0 / 4\u003c/span>\n\u003cspan class=\"right\">\u003cspan class=\"muted\" id=\"progLeft\">\u003c/span>\u003c/span>\n\u003c/header>\n\u003cdiv class=\"in\" style=\"padding-bottom:var(--s2)\">\n\u003cdiv class=\"bar\">\u003ci id=\"progBar\" style=\"width:0%\">\u003c/i>\u003c/div>\n\u003c/div>\n\u003cdiv class=\"in scroll\" style=\"padding-top:0\">\n\u003cdiv class=\"tw\">\n\u003ctable>\n\u003cthead>\u003ctr>\u003cth>대상\u003c/th>\u003cth class=\"tight\">상태\u003c/th>\n\u003cth>사유\u003c/th>\u003cth class=\"tight right\">소요\u003c/th>\u003c/tr>\u003c/thead>\n\u003ctbody id=\"liveRows\">\u003c/tbody>\n\u003c/table>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\u003cdiv class=\"actionbar\">\n\u003cdiv class=\"sum\" id=\"barSum\">\u003cspan class=\"muted\">발송 중 — 카카오톡이 잠겨 있다\u003c/span>\u003c/div>\n\u003cdiv class=\"right\" id=\"barAct\">\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"veil\" id=\"askVeil\" style=\"z-index: 50;\">\u003cdiv class=\"dialog narrow\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"askTitle\">\n\u003cheader>\u003cdiv class=\"big\" id=\"askTitle\">카카오톡을 실행해 주세요\u003c/div>\u003c/header>\n\u003cdiv class=\"in\">\u003cdiv id=\"askBody\">\u003cp>카카오톡이 실행 중이 아니라 발송을 시작하지 못했습니다. 카카오톡을 실행 후 로그인해 주세요.\u003c/p>\u003cp>완료하신 뒤 \u003cb>[계속 진행하기]\u003c/b>를 누르면 발송이 진행됩니다.\u003c/p>\u003cp class=\"faint small\">[발송 중단]을 누르면 보내지 않은 대상은 보류로 남고, 발송내역에서 재발송할 수 있습니다. · KKT-NOT-RUNNING\u003c/p>\u003c/div>\u003c/div>\n\u003cfooter>\n\u003cbutton class=\"btn ghost\" id=\"askNo\">발송 중단\u003c/button>\n\n\u003cbutton class=\"btn\" id=\"askYes\">계속 진행하기\u003c/button>\n\u003c/footer>\n\u003c/div>\u003c/div>\n","htmlAttrs":{"data-skin":"indigo"},"bodyAttrs":{"style":"overflow: hidden;"}},"278d341c7d":{"html":"\n\u003cdiv class=\"app\">\n\n\u003caside class=\"nav\">\n\n\u003cdiv class=\"brand\">\n\u003csvg class=\"wm\" viewBox=\"0 0 236.9 82.9\" role=\"img\" aria-label=\"원장톡\">\n\u003ctitle>원장톡\u003c/title>\n\u003cpath transform=\"translate(-2.80 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M43 -261Q28 -266 28 -282Q28 -297 43 -304Q57 -310 80 -310H609V-492H516Q508 -434 449.0 -402.0Q390 -370 304 -370Q212 -370 151.5 -407.0Q91 -444 91 -508V-540Q91 -604 151.5 -641.0Q212 -678 304 -678Q393 -678 453.0 -643.5Q513 -609 517 -547H609V-673Q609 -692 630 -698Q643 -702 666 -702Q689 -702 705 -698Q725 -690 725 -673V-112Q725 -96 706 -88Q690 -83 667 -83Q643 -83 629 -88Q609 -95 609 -112V-254H379V-161Q379 -139 348 -133Q328 -131 321 -131Q312 -131 294 -133Q278 -136 270.5 -142.5Q263 -149 263 -161V-254H80Q55 -254 43 -261ZM683 51Q707 51 721 58Q736 66 736 80Q736 97 721 101Q705 107 683 107H187Q180 107 168 105Q152 100 146.0 95.5Q140 91 140 79V-101Q140 -122 173 -128Q189 -130 199 -130Q206 -130 226 -128Q242 -125 249.5 -119.0Q257 -113 257 -101V51ZM304 -622Q260 -622 231.5 -599.5Q203 -577 203 -540V-508Q203 -471 231.5 -448.5Q260 -426 304 -426Q348 -426 376.5 -448.5Q405 -471 405 -508V-540Q405 -577 376.5 -599.5Q348 -622 304 -622Z\">\u003c/path>\n\u003cpath transform=\"translate(78.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M438 -157Q374 -157 337.0 -126.0Q300 -95 300 -51V-35Q300 9 337.0 40.0Q374 71 438 71Q502 71 539.0 40.0Q576 9 576 -35V-51Q576 -95 539.0 -126.0Q502 -157 438 -157ZM438 -213Q549 -213 620.5 -169.0Q692 -125 692 -43Q692 39 620.5 83.0Q549 127 438 127Q327 127 255.5 83.0Q184 39 184 -43Q184 -125 255.5 -169.0Q327 -213 438 -213ZM750 -530Q795 -530 795 -503Q795 -489 781.5 -482.0Q768 -475 750 -475H692V-277Q692 -266 684.5 -260.0Q677 -254 661 -251Q645 -249 635 -249Q620 -249 606 -252Q589 -256 582.0 -261.0Q575 -266 575 -277V-672Q575 -693 606 -700Q624 -702 634 -702Q644 -702 660 -700Q676 -695 684.0 -689.0Q692 -683 692 -672V-530ZM151 -290Q141 -279 133.5 -274.5Q126 -270 113 -270Q85 -270 61 -278Q51 -281 44.5 -287.5Q38 -294 38 -301Q38 -306 41 -309L224 -503V-612H88Q63 -612 51 -619Q37 -624 37 -640Q37 -653 51 -661Q65 -667 88 -667H460Q482 -667 497 -661Q512 -654 512 -640Q512 -624 497 -619Q483 -612 460 -612H339V-503L515 -323Q517 -321 517 -315Q517 -305 513 -301L512 -300Q509 -297 504.5 -295.0Q500 -293 494 -291Q474 -286 454 -286Q437 -286 424.5 -289.0Q412 -292 404 -301L281 -431Z\">\u003c/path>\n\u003cpath transform=\"translate(160.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M632 -156Q647 -151 653.0 -146.0Q659 -141 659 -130V78Q659 99 627 105Q609 107 600 107Q590 107 574 105Q568 104 552 97Q542 89 542 78V-103H185Q161 -103 149 -110Q134 -115 134 -130Q134 -147 149 -151Q163 -157 185 -157H611Q624 -157 632 -156ZM165 -371Q137 -377 137 -396V-657Q137 -669 143.0 -674.0Q149 -679 164 -683Q177 -686 195 -686H615Q637 -686 652 -680Q667 -673 667 -659Q667 -645 652 -637Q638 -630 615 -630H254V-554H607Q629 -554 644 -548Q659 -541 659 -527Q659 -521 655.0 -514.5Q651 -508 644 -505Q629 -499 607 -499H254V-423H615Q637 -423 652 -417Q667 -410 667 -396Q667 -381 652 -376Q638 -369 615 -369H455V-289H715Q737 -289 752 -283Q767 -276 767 -262Q767 -246 752 -241Q738 -234 715 -234H81Q56 -234 44 -241Q30 -246 30 -262Q30 -275 44 -283Q58 -289 81 -289H339V-369H183Q174 -370 165 -371Z\">\u003c/path>\n\u003c/svg>\n\u003csmall>카카오톡 자동발송\u003c/small>\n\u003c/div>\n\u003cbutton data-nav=\"send\" aria-current=\"true\">발송\u003c/button>\n\u003cbutton data-nav=\"hist\" aria-current=\"false\">발송내역\u003c/button>\n\u003cbutton data-nav=\"book\" aria-current=\"false\">주소록\u003c/button>\n\n\u003cbutton data-nav=\"msg\" aria-current=\"false\">메시지함\u003c/button>\n\u003cdiv class=\"spacer\">\u003c/div>\n\u003cdiv class=\"sep\">\u003c/div>\n\u003cbutton data-nav=\"conf\" aria-current=\"false\">설정\u003c/button>\n\u003cdiv class=\"foot\" id=\"appFoot\">v1.3.21 · 카톡 26.8.0.5310\u003c/div>\n\u003c/aside>\n\u003cdiv class=\"main\">\n\n\n\u003cnav class=\"tabs\" id=\"tabs\">\n\u003cspan class=\"title\" id=\"tabTitle\">발송 진행\u003c/span>\n\u003cspan class=\"tabbtns\" id=\"tabBtns\">\u003c/span>\n\u003c/nav>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"work on\" data-view=\"progress\" style=\"grid-template-columns:1fr\">\n\u003cdiv class=\"panel\">\n\u003cheader>진행 \u003cspan class=\"hint\" id=\"progHint\">0 / 4\u003c/span>\n\u003cspan class=\"right\">\u003cspan class=\"muted\" id=\"progLeft\">\u003c/span>\u003c/span>\n\u003c/header>\n\u003cdiv class=\"in\" style=\"padding-bottom:var(--s2)\">\n\u003cdiv class=\"bar\">\u003ci id=\"progBar\" style=\"width: 8%;\">\u003c/i>\u003c/div>\n\u003c/div>\n\u003cdiv class=\"in scroll\" style=\"padding-top:0\">\n\u003cdiv class=\"tw\">\n\u003ctable>\n\u003cthead>\u003ctr>\u003cth>대상\u003c/th>\u003cth class=\"tight\">상태\u003c/th>\n\u003cth>사유\u003c/th>\u003cth class=\"tight right\">소요\u003c/th>\u003c/tr>\u003c/thead>\n\u003ctbody id=\"liveRows\">\u003c/tbody>\n\u003c/table>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\u003cdiv class=\"actionbar\">\n\u003cdiv class=\"sum\" id=\"barSum\">\u003cspan class=\"muted\">발송 중 — 카카오톡이 잠겨 있다\u003c/span>\u003c/div>\n\u003cdiv class=\"right\" id=\"barAct\">\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"veil\" id=\"lockVeil\" style=\"z-index: 50;\">\n\u003cdiv class=\"lock\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"lockVeilTitle\">\n\n\u003cdiv class=\"big\" id=\"lockVeilTitle\">카카오톡 조작 중\u003c/div>\n\u003cdiv class=\"why\">마우스가 듣지 않습니다. 멈춘 것이 아니라 이 프로그램이 잠가 둔 것이고, 끝나면 저절로 풀립니다.\u003c/div>\n\u003cdiv class=\"bar\">\u003ci id=\"lockBar\" style=\"width: 8%;\">\u003c/i>\u003c/div>\n\u003cdiv class=\"foot\">\n\u003cspan id=\"lockNow\">4명 중 1명째 · 김철O 어머님 — 방 확인 중\u003c/span>\n\u003cbutton class=\"btn\" id=\"cancelBtn\">강제취소\u003c/button>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\n\n\n","htmlAttrs":{"data-skin":"indigo"},"bodyAttrs":{"style":"overflow: hidden;"}},"933b5580c3":{"html":"\n\u003cdiv class=\"app\">\n\n\u003caside class=\"nav\">\n\n\u003cdiv class=\"brand\">\n\u003csvg class=\"wm\" viewBox=\"0 0 236.9 82.9\" role=\"img\" aria-label=\"원장톡\">\n\u003ctitle>원장톡\u003c/title>\n\u003cpath transform=\"translate(-2.80 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M43 -261Q28 -266 28 -282Q28 -297 43 -304Q57 -310 80 -310H609V-492H516Q508 -434 449.0 -402.0Q390 -370 304 -370Q212 -370 151.5 -407.0Q91 -444 91 -508V-540Q91 -604 151.5 -641.0Q212 -678 304 -678Q393 -678 453.0 -643.5Q513 -609 517 -547H609V-673Q609 -692 630 -698Q643 -702 666 -702Q689 -702 705 -698Q725 -690 725 -673V-112Q725 -96 706 -88Q690 -83 667 -83Q643 -83 629 -88Q609 -95 609 -112V-254H379V-161Q379 -139 348 -133Q328 -131 321 -131Q312 -131 294 -133Q278 -136 270.5 -142.5Q263 -149 263 -161V-254H80Q55 -254 43 -261ZM683 51Q707 51 721 58Q736 66 736 80Q736 97 721 101Q705 107 683 107H187Q180 107 168 105Q152 100 146.0 95.5Q140 91 140 79V-101Q140 -122 173 -128Q189 -130 199 -130Q206 -130 226 -128Q242 -125 249.5 -119.0Q257 -113 257 -101V51ZM304 -622Q260 -622 231.5 -599.5Q203 -577 203 -540V-508Q203 -471 231.5 -448.5Q260 -426 304 -426Q348 -426 376.5 -448.5Q405 -471 405 -508V-540Q405 -577 376.5 -599.5Q348 -622 304 -622Z\">\u003c/path>\n\u003cpath transform=\"translate(78.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M438 -157Q374 -157 337.0 -126.0Q300 -95 300 -51V-35Q300 9 337.0 40.0Q374 71 438 71Q502 71 539.0 40.0Q576 9 576 -35V-51Q576 -95 539.0 -126.0Q502 -157 438 -157ZM438 -213Q549 -213 620.5 -169.0Q692 -125 692 -43Q692 39 620.5 83.0Q549 127 438 127Q327 127 255.5 83.0Q184 39 184 -43Q184 -125 255.5 -169.0Q327 -213 438 -213ZM750 -530Q795 -530 795 -503Q795 -489 781.5 -482.0Q768 -475 750 -475H692V-277Q692 -266 684.5 -260.0Q677 -254 661 -251Q645 -249 635 -249Q620 -249 606 -252Q589 -256 582.0 -261.0Q575 -266 575 -277V-672Q575 -693 606 -700Q624 -702 634 -702Q644 -702 660 -700Q676 -695 684.0 -689.0Q692 -683 692 -672V-530ZM151 -290Q141 -279 133.5 -274.5Q126 -270 113 -270Q85 -270 61 -278Q51 -281 44.5 -287.5Q38 -294 38 -301Q38 -306 41 -309L224 -503V-612H88Q63 -612 51 -619Q37 -624 37 -640Q37 -653 51 -661Q65 -667 88 -667H460Q482 -667 497 -661Q512 -654 512 -640Q512 -624 497 -619Q483 -612 460 -612H339V-503L515 -323Q517 -321 517 -315Q517 -305 513 -301L512 -300Q509 -297 504.5 -295.0Q500 -293 494 -291Q474 -286 454 -286Q437 -286 424.5 -289.0Q412 -292 404 -301L281 -431Z\">\u003c/path>\n\u003cpath transform=\"translate(160.20 70.20) scale(0.1)\" fill=\"currentColor\" d=\"M632 -156Q647 -151 653.0 -146.0Q659 -141 659 -130V78Q659 99 627 105Q609 107 600 107Q590 107 574 105Q568 104 552 97Q542 89 542 78V-103H185Q161 -103 149 -110Q134 -115 134 -130Q134 -147 149 -151Q163 -157 185 -157H611Q624 -157 632 -156ZM165 -371Q137 -377 137 -396V-657Q137 -669 143.0 -674.0Q149 -679 164 -683Q177 -686 195 -686H615Q637 -686 652 -680Q667 -673 667 -659Q667 -645 652 -637Q638 -630 615 -630H254V-554H607Q629 -554 644 -548Q659 -541 659 -527Q659 -521 655.0 -514.5Q651 -508 644 -505Q629 -499 607 -499H254V-423H615Q637 -423 652 -417Q667 -410 667 -396Q667 -381 652 -376Q638 -369 615 -369H455V-289H715Q737 -289 752 -283Q767 -276 767 -262Q767 -246 752 -241Q738 -234 715 -234H81Q56 -234 44 -241Q30 -246 30 -262Q30 -275 44 -283Q58 -289 81 -289H339V-369H183Q174 -370 165 -371Z\">\u003c/path>\n\u003c/svg>\n\u003csmall>카카오톡 자동발송\u003c/small>\n\u003c/div>\n\u003cbutton data-nav=\"send\" aria-current=\"true\">발송\u003c/button>\n\u003cbutton data-nav=\"hist\" aria-current=\"false\">발송내역\u003c/button>\n\u003cbutton data-nav=\"book\" aria-current=\"false\">주소록\u003c/button>\n\n\u003cbutton data-nav=\"msg\" aria-current=\"false\">메시지함\u003c/button>\n\u003cdiv class=\"spacer\">\u003c/div>\n\u003cdiv class=\"sep\">\u003c/div>\n\u003cbutton data-nav=\"conf\" aria-current=\"false\">설정\u003c/button>\n\u003cdiv class=\"foot\" id=\"appFoot\">v1.3.21 · 카톡 26.8.0.5310\u003c/div>\n\u003c/aside>\n\u003cdiv class=\"main\">\n\n\n\u003cnav class=\"tabs\" id=\"tabs\">\n\u003cspan class=\"title\" id=\"tabTitle\">결과\u003c/span>\n\u003cspan class=\"tabbtns\" id=\"tabBtns\">\u003c/span>\n\u003c/nav>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\u003cdiv class=\"work on\" data-view=\"result\" style=\"grid-template-columns:1fr\">\n\u003cdiv class=\"col\" style=\"grid-template-rows:auto auto minmax(0,1fr)\">\n\n\u003cdiv class=\"tiles\">\n\u003cbutton type=\"button\" class=\"tile ok\" data-resf=\"ok\" aria-pressed=\"true\">\n\u003cdiv class=\"n\" id=\"nOk\">4\u003c/div>\u003cdiv class=\"l\">성공\u003c/div>\n\u003cdiv class=\"d\">발송이 완료되었습니다.\u003c/div>\u003c/button>\n\u003cbutton type=\"button\" class=\"tile hold\" data-resf=\"hold\" aria-pressed=\"false\">\n\u003cdiv class=\"n\" id=\"nHold\">0\u003c/div>\u003cdiv class=\"l\">보류\u003c/div>\n\u003cdiv class=\"d\">조치가 필요해 발송이 보류된 건입니다.\u003c/div>\u003c/button>\n\u003cbutton type=\"button\" class=\"tile fail\" data-resf=\"fail\" aria-pressed=\"false\">\n\u003cdiv class=\"n\" id=\"nFail\">0\u003c/div>\u003cdiv class=\"l\">실패\u003c/div>\n\u003cdiv class=\"d\">발송이 실패하였고, 재발송이 불가능한 건입니다.\u003c/div>\u003c/button>\n\u003c/div>\n\n\u003cdiv class=\"panel\">\n\u003cheader>상세내역\n\u003cspan class=\"hint\">발송결과 상세보기\u003c/span>\n\n\u003cspan class=\"right\" id=\"resAct\">\u003cbutton class=\"btn sm\" id=\"resResendAll\" aria-disabled=\"true\" title=\"보류 건 중 안 간 것만 다시 보냅니다\">모두 재발송\u003c/button>\u003c/span>\u003c/header>\n\u003cdiv class=\"in scroll\">\n\u003cdiv class=\"tw\">\n\u003ctable>\n\n\u003cthead>\u003ctr>\u003cth>채팅방명\u003c/th>\u003cth>이름\u003c/th>\n\u003cth>오류\u003c/th>\u003cth class=\"tight right\">조치\u003c/th>\u003c/tr>\u003c/thead>\n\u003ctbody id=\"doneRows\">\n\u003ctr>\u003ctd>\u003cb>김철O 어머님\u003c/b>\u003c/td>\n\u003ctd>김철O\u003c/td>\n\u003ctd>\u003cspan class=\"faint\">—\u003c/span> \u003c/td>\n\u003ctd class=\"tight right\">\u003cspan class=\"faint\">—\u003c/span>\u003c/td>\u003c/tr>\n\u003ctr>\u003ctd>\u003cb>이영O 어머님\u003c/b>\u003c/td>\n\u003ctd>이영O\u003c/td>\n\u003ctd>\u003cspan class=\"faint\">—\u003c/span> \u003c/td>\n\u003ctd class=\"tight right\">\u003cspan class=\"faint\">—\u003c/span>\u003c/td>\u003c/tr>\n\u003ctr>\u003ctd>\u003cb>강지O 어머님\u003c/b>\u003c/td>\n\u003ctd>강지O\u003c/td>\n\u003ctd>\u003cspan class=\"faint\">—\u003c/span> \u003c/td>\n\u003ctd class=\"tight right\">\u003cspan class=\"faint\">—\u003c/span>\u003c/td>\u003c/tr>\n\u003ctr>\u003ctd>\u003cb>윤도O 어머님\u003c/b>\u003c/td>\n\u003ctd>윤도O\u003c/td>\n\u003ctd>\u003cspan class=\"faint\">—\u003c/span> \u003c/td>\n\u003ctd class=\"tight right\">\u003cspan class=\"faint\">—\u003c/span>\u003c/td>\u003c/tr>\u003c/tbody>\n\u003c/table>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\u003cdiv class=\"actionbar\">\n\u003cdiv class=\"sum\" id=\"barSum\">\u003cspan class=\"muted\">보류·실패는 직접 확인하여 재발송 및 취소 조치를 해주세요.\u003c/span>\u003c/div>\n\u003cdiv class=\"right\" id=\"barAct\">\u003cbutton class=\"btn ghost\" data-tohist=\"\">내역에서 보기\u003c/button>\u003cbutton class=\"btn\" data-back=\"\">새 발송\u003c/button>\u003c/div>\n\u003c/div>\n\u003c/div>\n\u003c/div>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n","htmlAttrs":{"data-skin":"indigo"},"bodyAttrs":{"style":""}}},"paths":[{"key":"main","choices":{},"steps":[{"id":"start","scene":"ea0b071230","rects":{"target":[397,224,470,313]}},{"id":"start-ok","scene":"ea0b071230","rects":{"target":[785,484,57,40]}},{"id":"send","scene":"825069f6db","rects":{"target":[1136,713,104,38]}},{"id":"go","scene":"825069f6db","rects":{"target":[1136,713,104,38]}},{"id":"confirm","scene":"33d9326485","rects":{"target":[890,507,57,40]}},{"id":"blocked","scene":"fe8c021899","rects":{"target":[397,247,470,267]}},{"id":"continue","scene":"fe8c021899","rects":{"target":[735,461,107,40]}},{"id":"resumed","scene":"278d341c7d","rects":{"target":[322,284,620,193]}},{"id":"others","scene":"933b5580c3","rects":{"target":[224,68,331,106]}},{"id":"end","scene":"933b5580c3","rects":{"target":[12,671,175,38]}}]}]}</script>
+<script>
+(function () {
+'use strict';
+const $ = (s, r) => (r || document).querySelector(s);
+const D = JSON.parse($('#g-data').textContent);
+const W = 1264, H = 761, TIP_AT = 0.7, WAIT_AT = TIP_AT + 0.5;
+const STEP = Object.fromEntries(D.scenario.steps.map((s) => [s.id, s]));
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const root = $('#gp');
+const view = $('.gp-view', root), stage = $('.gp-stage', root);
+const spot = $('.gp-spot', root), cur = $('.gp-cur', root), rip = $('.gp-rip', root), tip = $('.gp-tip', root);
+const hits = $('.gp-hits', root), fp = $('.gp-fp', root), xl = $('.gp-sh', root), mk = $('.gp-mk', root);
+const track = $('.gp-track', root), knob = $('.gp-knob', root), hover = $('.gp-hover', root);
+const mtip = $('.gp-mtip', root), loupe = $('.gp-loupe', root), lstage = $('.gp-lstage', root);
+const lspot = $('.gp-lspot', root), lcur = $('.gp-lcur', root);
+const $$ = (q, el) => [...(el || document).querySelectorAll(q)];
+const textList = $('#gt');
+let sheet = null;
+try { sheet = new CSSStyleSheet(); sheet.replaceSync(D.css); } catch (e) { sheet = null; }
+const makeHost = (el) => {
+const sh = el.attachShadow({ mode: 'open' });
+if (sheet) { sh.adoptedStyleSheets = [sheet]; sh.innerHTML = '<div class="gbody"></div>'; }
+else sh.innerHTML = '<style>' + D.css + '</style><div class="gbody"></div>';
+return { el, sh, body: sh.querySelector('.gbody'), scene: null, dirty: false };
+};
+const main = makeHost($('.gp-host', root)), lhost = makeHost($('.gp-lhost', root));
+function paint(h, id, force) {
+if (!force && h.scene === id && !h.dirty) return;
+const s = D.scenes[id];
+for (const a of [...h.el.attributes]) if (a.name.startsWith('data-')) h.el.removeAttribute(a.name);
+for (const [k, v] of Object.entries(s.htmlAttrs || {})) if (k.startsWith('data-')) h.el.setAttribute(k, v);
+h.body.className = 'gbody ' + ((s.bodyAttrs || {}).class || '');
+h.body.innerHTML = s.html;
+h.body.querySelectorAll('[data-gscroll]').forEach((e) => { const [t, l] = e.dataset.gscroll.split(',').map(Number); e.scrollTop = t; e.scrollLeft = l; });
+h.scene = id; h.dirty = false;
+}
+const chosen = {};
+const defaults = {};
+D.scenario.steps.forEach((s) => { if (s.choose) defaults[s.id] = s.choose[0].key; });
+let path = null, starts = [], T = 0, pending = -1;
+function pickPath() {
+const want = { ...defaults, ...chosen };
+path = D.paths.find((p) => Object.entries(p.choices).every(([k, v]) => want[k] === v)) || D.paths[0];
+starts = []; let a = 0;
+path.steps.forEach((st) => { starts.push(a); a += STEP[st.id].dur; });
+T = a;
+pending = path.steps.findIndex((st) => STEP[st.id].choose && !(st.id in chosen));
+buildBar();
+}
+const stepAt = (x) => { let i = path.steps.length - 1; while (i > 0 && starts[i] > x) i--; return i; };
+const fmt = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rich = (s) => s.replace(/\[([^\]]+)\]/g, '<span class="k">$1</span>');
+let segs = [];
+function buildBar() {
+track.querySelectorAll('.gp-seg').forEach((e) => e.remove());
+segs = path.steps.map((st, i) => {
+const s = STEP[st.id], seg = document.createElement('div');
+seg.className = 'gp-seg' + (s.choose ? ' ch' : '') + (pending >= 0 && i > pending ? ' tent' : '');
+seg.style.setProperty('--d', s.dur);
+seg.appendChild(document.createElement('b'));
+track.insertBefore(seg, knob);
+return seg;
+});
+}
+const xOfTime = (x) => { const i = stepAt(x), r = segs[i].getBoundingClientRect(); return r.left + r.width * clamp((x - starts[i]) / STEP[path.steps[i].id].dur, 0, 1); };
+const timeOfX = (cx) => {
+for (let i = 0; i < segs.length; i++) {
+const r = segs[i].getBoundingClientRect();
+if (cx <= r.right + 1.5 || i === segs.length - 1) return starts[i] + STEP[path.steps[i].id].dur * clamp((cx - r.left) / r.width, 0, 1);
+}
+return 0;
+};
+function placeTip(r, prefer) {
+const tw = tip.offsetWidth, th = tip.offsetHeight, g = 16, m = 12;
+const [x, y, w, h] = r;
+const cand = (s) => s === 'right' ? [x + w + g, y + h / 2 - th / 2] : s === 'left' ? [x - tw - g, y + h / 2 - th / 2]
+: s === 'top' ? [x + w / 2 - tw / 2, y - th - g] : [x + w / 2 - tw / 2, y + h + g];
+let side = 'inside', pos = null;
+if (!(w > W * 0.55 && h > H * 0.55)) {
+for (const s of [prefer, 'right', 'bottom', 'top', 'left'].filter(Boolean)) {
+const p = cand(s);
+if (s === 'right' || s === 'left') p[1] = clamp(p[1], m, H - th - m); else p[0] = clamp(p[0], m, W - tw - m);
+if (p[0] >= m && p[1] >= m && p[0] + tw <= W - m && p[1] + th <= H - m) { side = s; pos = p; break; }
+}
+}
+if (!pos) pos = [clamp(x + w - tw - 28, m, W - tw - m), clamp(y + h - th - 28, m, H - th - m)];
+tip.style.left = pos[0] + 'px'; tip.style.top = pos[1] + 'px'; tip.dataset.side = side;
+tip.style.setProperty('--ax', clamp(x + w / 2 - pos[0] - 7, 18, tw - 32) + 'px');
+tip.style.setProperty('--ay', clamp(y + h / 2 - pos[1] - 7, 18, th - 32) + 'px');
+return [pos[0], pos[1], tw, th];
+}
+const FP = { box: [300, 150, 560, 400], drop: 0.9, show: 1.1, rowAt: 1.6, pick: 2.0, okAt: 2.6, ok: 3.0, hide: 3.3 };
+const fpRect = (sel) => { const e = $(sel, fp); return [FP.box[0] + e.offsetLeft, FP.box[1] + e.offsetTop, e.offsetWidth, e.offsetHeight]; };
+const STR = (k) => { const e = $('.gp-strings [data-k="' + k + '"]', root); return e ? e.textContent : ''; };
+const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const FP_HTML = fp ? fp.innerHTML : '';
+const FP_ICON = {
+img: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="#E8F0FF" stroke="#6C8CD5"/><circle cx="9" cy="10" r="2" fill="#6C8CD5"/><path d="M5 18l5-5 3 3 2-2 4 4z" fill="#6C8CD5"/></svg>',
+doc: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="#FFF3E6" stroke="#D5935A"/><path d="M14 3v4h4" fill="none" stroke="#D5935A"/></svg>',
+xls: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="#E7F4EC" stroke="#2E8B57"/><path d="M14 3v4h4" fill="none" stroke="#2E8B57"/><path d="M9 11l4 6m0-6l-4 6" stroke="#2E8B57" stroke-width="1.6"/></svg>' };
+function fpFill(s) {
+if (!fp) return;
+if (!s.fp) { if (fp.innerHTML !== FP_HTML) fp.innerHTML = FP_HTML; return; }
+fp.innerHTML = FP_HTML;
+$('.fp-addr', fp).textContent = s.fp.addr || '';
+if (s.fp.nav) $$('.fp-nav div', fp).forEach((d) => d.classList.toggle('on', d.textContent === s.fp.nav));
+$('.fp-list', fp).innerHTML = s.fp.files.map((f) => '<div class="fp-row' + (f.pick ? ' pick' : '') + '">' + (FP_ICON[f.kind] || FP_ICON.doc)
++ '<span class="nm">' + esc(f.name) + '</span><span class="sz">' + esc(f.size || '') + '</span></div>').join('');
+}
+const SH = { box: [150, 120, 690, 410], show: 0.4 };   // 무대의 55% 보다 작게 — 크면 툴팁이 「큰 대상」 으로 보고 안쪽 구석에 앉는다(placeTip)
+const COLS = 'ABCDEFGH';
+function sheetFill(s) {
+if (!xl) return;
+const d = s.sheet, n = Math.max(...d.rows.map((r) => r.length));
+let h = '<div class="sh-bar"><b>X</b><span>' + esc(d.file) + ' - Excel</span></div>'
++ '<div class="sh-rib"><span>홈</span><span>삽입</span><span>페이지 레이아웃</span><span>수식</span><span>데이터</span></div>'
++ '<div class="sh-wrap"><table class="sh-grid"><tr><th class="rn"></th>';
+for (let c = 0; c < n; c++) h += '<th>' + COLS[c] + '</th>';
+h += '</tr>';
+d.rows.forEach((r, i) => {
+h += '<tr class="r' + (i + 1) + '"><th class="rn">' + (i + 1) + '</th>';
+for (let c = 0; c < n; c++) {
+const v = r[c] == null ? '' : r[c];
+const nv = i >= 3 ? d.values[i - 3] : null, isFill = i >= 3 && c === d.col && nv != null;
+const cls = (i === 2 ? 'hd' : '') + (i >= 3 && c === 0 ? ' key' : '') + (isFill ? ' fill' : '');
+h += '<td data-c="' + c + '"' + (isFill ? ' data-v="' + esc(nv) + '"' : '') + (cls ? ' class="' + cls.trim() + '"' : '')
++ (i < 2 && c === 0 ? ' colspan="' + n + '"' : '') + '>' + esc(isFill ? (d.type ? '' : nv) : v) + '</td>';
+if (i < 2 && c === 0) break;
+}
+h += '</tr>';
+});
+xl.innerHTML = h + '</table></div><div class="sh-tabs"><span class="on">대상</span></div>';
+}
+function sheetRect(s) {
+const cells = $$((s.sheet.focus === 'key' ? 'td.key' : 'td.fill'), xl);
+if (!cells.length) return SH.box;
+const a = cells[0], b = cells[cells.length - 1], base = $('.sh-wrap', xl);
+const x = SH.box[0] + base.offsetLeft + a.offsetLeft, y = SH.box[1] + base.offsetTop + a.offsetTop;
+return [x, y, a.offsetWidth, b.offsetTop + b.offsetHeight - a.offsetTop];
+}
+const MK = { win: [200, 110, 560, 380], tray: [930, 380, 290, 330] };
+function mockFill(s) {
+const d = s.mock, kind = d.kind === 'tray' ? 'tray' : 'win', [x, y, w, h] = MK[kind];
+mk.className = 'gp-mk ' + kind;
+mk.style.left = x + 'px'; mk.style.top = y + 'px'; mk.style.width = w + 'px'; mk.style.height = h + 'px';
+let html = '';
+if (kind === 'tray') {
+html = '<div class="mk-menu" data-f="menu">' + (d.menu || []).map((m, i) => '<div class="mk-mi' + (i === (d.pick || 0) ? ' on' : '') + '">' + esc(m) + '</div>').join('') + '</div>'
++ '<div class="mk-bar"><span class="mk-ic">원</span><span class="mk-clock">오전 10:00</span></div>';
+} else {
+html = '<div class="mk-title"><b>' + esc(d.bar || '') + '</b><span>✕</span></div>'
++ '<div class="mk-head"><div class="t">' + esc(d.title || '') + '</div><div class="s">' + esc(d.sub || '') + '</div></div>'
++ '<div class="mk-body">' + (d.lines || []).map((l) => '<p>' + esc(l) + '</p>').join('')
++ (d.field ? '<div class="mk-field" data-f="field"><label>' + esc(d.field.label) + '</label><div class="in">' + esc(d.field.value || '') + '</div></div>' : '')
++ (d.checks ? '<div class="mk-checks" data-f="checks">' + d.checks.map((c) => '<div class="ck' + (c.on ? ' on' : '') + '"><i></i>' + esc(c.label) + '</div>').join('') + '</div>' : '')
++ '</div><div class="mk-btns">' + (d.buttons || []).map((b, i) => '<span class="b' + (i === (d.primary == null ? 1 : d.primary) ? ' pri' : '') + '" data-f="btn:' + i + '">' + esc(b) + '</span>').join('') + '</div>';
+}
+mk.innerHTML = html;
+}
+function mockRect(s) {
+const f = s.mock.focus || 'box', box = MK[s.mock.kind === 'tray' ? 'tray' : 'win'];
+const el = f === 'box' ? null : $('[data-f="' + f + '"]', mk);
+if (!el) return box;
+let x = 0, y = 0;
+for (let e = el; e && e !== mk; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+return [box[0] + x, box[1] + y, el.offsetWidth, el.offsetHeight];
+}
+function sheetAt(local) {
+const s = STEP[path.steps[idx].id];
+xl.classList.toggle('show', local >= SH.show);
+if (!s.sheet.type) return;
+const tds = $$('td.fill', xl), all = tds.map((td) => td.dataset.v);
+const total = all.reduce((a, v) => a + v.length, 0);
+let k = Math.round(total * clamp((local - 1.0) / (s.dur * 0.6), 0, 1));
+tds.forEach((td, i) => { const v = all[i], m = Math.min(v.length, k); k -= m; td.textContent = v.slice(0, m); td.classList.toggle('typing', m > 0 && m < v.length); });
+}
+let t = 0, playing = false, speed = 1, idx = -1, last = 0, scrub = false, tipShown = false;
+let tipRect = [0, 0, 0, 0], focus = [0, 0, 0, 0], mode = 'fit';
+let wantPathChange = false;
+let passed = 0, awaiting = null, awaitKey = '';
+const setSpot = (el, r, pad) => { el.style.left = (r[0] - pad) + 'px'; el.style.top = (r[1] - pad) + 'px'; el.style.width = (r[2] + pad * 2) + 'px'; el.style.height = (r[3] + pad * 2) + 'px'; };
+const setCur = (el, p) => { el.style.transform = 'translate(' + (p[0] - 5) + 'px,' + (p[1] - 3) + 'px)'; };
+const center = (r) => [r[0] + r[2] / 2, r[1] + r[3] / 2];
+const curOf = (s, r) => s.act === 'type' ? [r[0] + 36, r[1] + 26] : center(r);
+const pointOf = (ps, s) => ps.rects.point ? center(ps.rects.point) : curOf(s, ps.rects.target);
+function ripple(p) {
+if (reduce) return;
+rip.style.left = p[0] + 'px'; rip.style.top = p[1] + 'px';
+rip.classList.remove('go'); void rip.offsetWidth; rip.classList.add('go');
+}
+const WATCH = D.scenario.mode === 'watch';
+const AUTO_CLICK = WAIT_AT + 0.2;
+let autoFired = false;
+function clicksOf(ps, s) {
+if (WATCH) return [];
+if (s.overlay === 'filepicker') return [
+{ at: FP.drop, rect: () => ps.rects.target },
+{ at: FP.pick, rect: () => fpRect('.fp-row.pick') },
+{ at: FP.ok, rect: () => fpRect('.fp-btn.pri') }];
+if (s.act === 'click') return [{ at: WAIT_AT, rect: () => ps.rects.target, point: () => pointOf(ps, s) }];
+return [];
+}
+const ACT = { click: ['클릭', 'M5 3v14l4-3.6 2.6 5.8 2.4-1.1-2.6-5.6H17z'], type: ['입력', 'M4 5h16v2H4zm0 6h10v2H4zm0 6h13v2H4z'],
+look: ['살펴보기', 'M12 5C6 5 2 12 2 12s4 7 10 7 10-7 10-7-4-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z'], choose: ['고르기', 'M12 2l10 10-10 10L2 12z'] };
+function enterStep(i) {
+const prev = idx; idx = i; passed = 0; awaitKey = ''; tipShown = false; autoFired = false;
+tip.classList.remove('show'); mtip.classList.remove('show');
+const ps = path.steps[i], s = STEP[ps.id], r = ps.rects.target;
+const typing = s.anim === 'typing';
+paint(main, ps.scene, typing); paint(lhost, ps.scene, typing);
+const n = (i + 1) + ' / ' + path.steps.length;
+$('.gp-no', tip).textContent = n; $('.gp-ch', tip).textContent = s.ch;
+$('h4', tip).textContent = s.title; $('p', tip).innerHTML = rich(s.text);
+$('.gp-no', mtip).textContent = n; $('.gp-ch', mtip).textContent = s.ch;
+$('h4', mtip).textContent = s.title; $('p', mtip).innerHTML = rich(s.text);
+const dots = path.steps.map((x, k) => '<i class="' + (k < i ? 'done' : k === i ? 'on' : '') + '"></i>').join('');
+$('.gp-dots', tip).innerHTML = dots;
+const a = ACT[s.act] || ACT.look;
+$('.gp-act', tip).innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="' + a[1] + '"/></svg>' + a[0];
+const optsHtml = s.choose ? s.choose.map((o) => '<button type="button" data-k="' + o.key + '" class="' + (chosen[s.id] === o.key ? 'on' : '') + '">' + o.label + '</button>').join('') : '';
+const needClick = clicksOf(ps, s).length > 0;
+for (const box of [tip, mtip]) {
+const o = $('.gp-opts', box); o.innerHTML = optsHtml; o.hidden = !s.choose;
+const w = $('.gp-wait', box), m = box === mtip;
+w.classList.toggle('click', needClick);
+w.textContent = needClick ? STR(m ? 'mtipClick' : 'tipClick') : STR(m ? 'mtipChoose' : 'tipChoose');
+w.hidden = !(needClick || (s.choose && !(s.id in chosen)));
+$('.gp-foot', box) && ($('.gp-foot', box).hidden = !!s.choose);
+o.querySelectorAll('button').forEach((b) => { b.onclick = () => choose(s.id, b.dataset.k); });
+}
+hits.innerHTML = '';
+if (s.choose) for (const o of s.choose) {
+const hr = ps.rects.hits && ps.rects.hits[o.key];
+if (!hr) continue;
+const b = document.createElement('button');
+b.type = 'button'; b.className = 'gp-hit' + (chosen[s.id] === o.key ? ' on' : (s.id in chosen ? '' : ' wait'));
+b.setAttribute('aria-label', o.label + ' 고르기');
+setSpot(b, hr, 4); b.onclick = () => choose(s.id, o.key, center(hr));
+hits.appendChild(b);
+}
+if (textList) {
+textList.querySelectorAll('li.on').forEach((li) => li.classList.remove('on'));
+const li = textList.querySelector('li[data-s="' + ps.id + '"]'); if (li) li.classList.add('on');
+}
+syncTabs();
+$('.gp-now', root).textContent = s.ch + ' · ' + s.title;
+if (!s.overlay) { setSpot(spot, r, 6); setCur(cur, pointOf(ps, s)); setSpot(lspot, r, 6); setCur(lcur, pointOf(ps, s)); }
+fp.classList.remove('show'); fpAnchor = '';
+if (xl) xl.classList.remove('show');
+if (mk) mk.classList.remove('show');
+fpFill(s);
+let tr = r;
+if (s.overlay === 'sheet' && xl) {
+sheetFill(s);
+tr = sheetRect(s);
+setSpot(spot, tr, 4); setCur(cur, center(tr)); setSpot(lspot, tr, 4); setCur(lcur, center(tr));
+}
+if (s.overlay === 'mock' && mk) {
+mockFill(s);
+tr = mockRect(s);
+setSpot(spot, tr, 4); setCur(cur, center(tr)); setSpot(lspot, tr, 4); setCur(lcur, center(tr));
+}
+tipRect = s.overlay === 'sheet' ? placeTip(SH.box, 'right')
+: s.overlay === 'mock' ? placeTip(MK[s.mock.kind === 'tray' ? 'tray' : 'win'], s.mock.kind === 'tray' ? 'left' : 'right')
+: placeTip(tr, s.side);
+focus = tr;
+camera();
+return prev;
+}
+let fpAnchor = '';
+function overlayAt(local) {
+const show = local >= FP.show && local < FP.hide;
+fp.classList.toggle('show', show);
+const picked = passed >= 2;
+$('.fp-row.pick', fp).classList.toggle('sel', picked);
+$('.fp-name', fp).textContent = picked ? $('.fp-row.pick .nm', fp).textContent : '';
+const drop = path.steps[idx].rects.target;
+let r = drop, p = center(drop);
+if (local >= FP.rowAt && local < FP.okAt) { r = fpRect('.fp-row.pick'); p = center(r); }
+else if (local >= FP.okAt && local < FP.hide) { r = fpRect('.fp-btn.pri'); p = center(r); }
+setSpot(spot, r, 6); setCur(cur, p); setSpot(lspot, r, 6); setCur(lcur, p);
+focus = show ? r : drop;
+const anchor = show ? 'box' : 'drop';
+if (anchor !== fpAnchor) { fpAnchor = anchor; tipRect = placeTip(show ? FP.box : drop, show ? 'right' : null); }
+return show;
+}
+function render(instant) {
+if (instant) { view.classList.remove('moving'); [spot, cur].forEach((e) => { e.style.transition = 'none'; }); }
+const i = stepAt(t), local = t - starts[i];
+if (i !== idx || wantPathChange) { wantPathChange = false; enterStep(i); }
+const ps = path.steps[i], s = STEP[ps.id];
+const want = local >= TIP_AT;
+if (want !== tipShown) { tipShown = want; tip.classList.toggle('show', want); mtip.classList.toggle('show', want); }
+if (s.anim === 'typing') {
+const f = clamp((local - 0.6) / (s.dur * 0.55), 0, 1);
+for (const h of [main, lhost]) {
+const el = h.sh.querySelector(s.target); if (!el) continue;
+if (el.dataset.full == null) el.dataset.full = el.value;
+const base = Math.min(s.typeFrom || 0, el.dataset.full.length);
+const part = el.dataset.full.slice(0, base + Math.round((el.dataset.full.length - base) * f));
+el.value = part;
+const mir = s.mirror && h.sh.querySelector(s.mirror);
+if (mir) { if (mir.dataset.full == null) mir.dataset.full = mir.innerHTML; if (f >= 1) mir.innerHTML = mir.dataset.full; else mir.textContent = part; }
+h.dirty = true;
+}
+}
+if (s.overlay === 'filepicker') { overlayAt(local); loupeAt(); }
+if (s.overlay === 'sheet' && xl) { sheetAt(local); loupeAt(); }
+if (s.overlay === 'mock' && mk) { mk.classList.toggle('show', local >= 0.3); loupeAt(); }
+if (WATCH && s.act === 'click' && !instant && !autoFired && local >= AUTO_CLICK && local < AUTO_CLICK + 0.5) { autoFired = true; ripple(pointOf(ps, s)); }
+segs.forEach((seg, k) => { seg.firstChild.style.width = (clamp((t - starts[k]) / STEP[path.steps[k].id].dur, 0, 1) * 100) + '%'; });
+knob.style.left = (xOfTime(t) - track.getBoundingClientRect().left) + 'px';
+$('.gp-time', root).textContent = fmt(t) + ' / ' + fmt(T);
+const waiting = s.choose && !(s.id in chosen) && local >= WAIT_AT - 0.01;
+awaitUpdate(ps, s, local);
+const now = $('.gp-now', root);
+now.classList.toggle('wait', !!(waiting || awaiting));
+now.classList.toggle('click', !!awaiting);
+if (awaiting) now.textContent = STR('nowClick');
+else if (waiting) now.textContent = STR('nowChoose');
+else now.textContent = s.ch + ' · ' + s.title;
+if (instant) requestAnimationFrame(() => { [spot, cur].forEach((e) => { e.style.transition = ''; }); if (!reduce) view.classList.add('moving'); });
+}
+const lhits = $('.gp-lhits', root);
+const mkTap = (box, p) => { const e = document.createElement('div'); e.className = 'gp-tap'; e.style.left = p[0] + 'px'; e.style.top = p[1] + 'px'; box.appendChild(e); };
+const mkHit = (box, r, label, fn) => {
+const b = document.createElement('button');
+b.type = 'button'; b.className = 'gp-hit click'; b.setAttribute('aria-label', label);
+setSpot(b, r, 4); b.onclick = (e) => { e.stopPropagation(); fn(); };
+box.appendChild(b);
+};
+function awaitUpdate(ps, s, local) {
+const w = clicksOf(ps, s)[passed];
+awaiting = w && !playing && local >= w.at - 0.01 ? w : null;
+const pick = !awaiting && !!s.choose && !(s.id in chosen) && !playing && local >= WAIT_AT - 0.01;
+const key = awaiting ? 'c:' + ps.id + ':' + passed : pick ? 'h:' + ps.id : '';
+root.classList.toggle('await', !!(awaiting || pick));
+if (key === awaitKey) return;
+awaitKey = key;
+clearInterval(altTimer); altTimer = 0;
+for (const box of [tip, mtip]) box.querySelectorAll('.gp-opts button.hint').forEach((b) => b.classList.remove('hint'));
+for (const box of [hits, lhits]) box.querySelectorAll('.gp-hit.click, .gp-tap').forEach((e) => e.remove());
+if (!pick && !s.overlay && s.choose) { setSpot(spot, ps.rects.target, 6); setSpot(lspot, ps.rects.target, 6); focus = ps.rects.target; }
+if (awaiting) {
+const r = awaiting.rect(), p = awaiting.point ? awaiting.point() : center(r);
+for (const box of [hits, lhits]) { mkHit(box, r, '여기를 누르기 — ' + s.title, () => press(p)); mkTap(box, p); }
+} else if (pick) {
+const opts = s.choose.map((o) => ({ o, hr: ps.rects.hits && ps.rects.hits[o.key] })).filter((x) => x.hr);
+for (const { o, hr } of opts) mkHit(lhits, hr, o.label + ' 고르기', () => choose(s.id, o.key, center(hr)));
+let n = 0;
+const T0 = ps.rects.target, inside = (r) => r[0] >= T0[0] - 2 && r[1] >= T0[1] - 2 && r[0] + r[2] <= T0[0] + T0[2] + 2 && r[1] + r[3] <= T0[1] + T0[3] + 2;
+const follow = !opts.every((x) => inside(x.hr));
+const show = () => {
+const { o, hr } = opts[n++ % opts.length];
+for (const box of [hits, lhits]) { box.querySelectorAll('.gp-tap').forEach((e) => e.remove()); mkTap(box, center(hr)); }
+for (const box of [tip, mtip]) box.querySelectorAll('.gp-opts button').forEach((b) => b.classList.toggle('hint', b.dataset.k === o.key));
+if (follow) { setSpot(spot, hr, 6); setSpot(lspot, hr, 6); focus = hr; loupeAt(); }
+};
+if (opts.length) { show(); if (opts.length > 1) altTimer = setInterval(show, 1200); }
+}
+}
+let altTimer = 0;
+function press(p) {
+if (!awaiting) return;
+ripple(p);
+const i = idx, ps = path.steps[i], s = STEP[ps.id];
+passed++;
+const more = clicksOf(ps, s)[passed];
+awaiting = null;
+if (s.overlay || more) { t = starts[i] + clicksOf(ps, s)[passed - 1].at + 0.01; render(false); play(true); return; }
+if (starts[i + 1] != null) seek(starts[i + 1]); else seek(T);
+play(true);
+}
+function nudge() {
+for (const el of [tip, mtip]) { el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); }
+}
+function camera() {
+const vw = view.clientWidth, narrow = vw < 760, fit = narrow && mode === 'fit';
+root.classList.toggle('mfit', fit);
+const vh = narrow && !fit ? Math.round(vw * 0.75) : Math.round(vw * H / W);
+view.style.height = vh + 'px';
+let s = vw / W, tx = 0, ty = 0;
+if (narrow && !fit && idx >= 0) {
+const c = center(focus), [L, Tp, tw, th] = tipRect, pad = 20;
+const x = c[0] - 60, y = c[1] - 50, w = 120, h = 100;
+let fx = Math.min(x, L) - pad, fy = Math.min(y, Tp) - pad;
+let fw = Math.max(x + w, L + tw) + pad - fx, fh = Math.max(y + h, Tp + th) + pad - fy;
+if (fw / fh < 4 / 3) { const nw = fh * 4 / 3; fx -= (nw - fw) / 2; fw = nw; } else { const nh = fw * 3 / 4; fy -= (nh - fh) / 2; fh = nh; }
+s = Math.min(1, vw / fw);
+tx = Math.min(0, Math.max(vw - W * s, -fx * s)); ty = Math.min(0, Math.max(vh - H * s, -fy * s));
+}
+stage.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')';
+if (fit) loupeAt();
+}
+function loupeAt() {
+if (!root.classList.contains('mfit') || idx < 0) return;
+const s = STEP[path.steps[idx].id], [x, y, w, h] = focus;
+const lw = loupe.clientWidth || 318, fitL = Math.min(lw / (w + 24), 150 / (h + 24));
+const huge = w > W * 0.5 && h > H * 0.5;
+loupe.hidden = huge && s.act === 'look';
+if (loupe.hidden) return;
+const lh = loupe.clientHeight, L = fitL >= 0.6 ? Math.min(0.85, fitL) : 0.85;
+const ps = path.steps[idx];
+const c = fitL >= 0.6 ? center(focus) : (s.act === 'type' ? [x + 160, y + 60] : (s.overlay ? center(focus) : pointOf(ps, s)));
+const tx = Math.min(0, Math.max(lw - W * L, lw / 2 - c[0] * L)), ty = Math.min(0, Math.max(lh - H * L, lh / 2 - c[1] * L));
+lstage.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + L + ')';
+const lfp = $('.gp-fp', lstage);
+if (lfp) { lfp.className = fp.className; lfp.innerHTML = fp.innerHTML; }
+const lxl = $('.gp-sh', lstage);
+if (lxl && xl) { lxl.className = xl.className; lxl.innerHTML = xl.innerHTML; }
+const lmk = $('.gp-mk', lstage);
+if (lmk && mk) { lmk.className = mk.className; lmk.style.cssText = mk.style.cssText; lmk.innerHTML = mk.innerHTML; }
+}
+function choose(id, key, at) {
+const same = chosen[id] === key;
+chosen[id] = key;
+if (at) ripple(at);
+if (!same) { pickPath(); wantPathChange = true; }
+const i = path.steps.findIndex((st) => st.id === id);
+seek(starts[i + 1] != null ? starts[i + 1] : starts[i]);
+play(true);
+}
+function syncTabs() {
+if (!textList) return;
+textList.querySelectorAll('.gt-br').forEach((br) => {
+const c = br.dataset.choice, k = chosen[c] || defaults[c];
+br.querySelectorAll('.gt-tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.k === k)));
+br.querySelectorAll(':scope > ol, :scope > .gt-none').forEach((ol) => { ol.hidden = ol.dataset.k !== k; });
+});
+}
+function seek(x) {
+t = clamp(x, 0, T - 0.001); render(true);
+const i = stepAt(t), local = t - starts[i];
+const n = clicksOf(path.steps[i], STEP[path.steps[i].id]).filter((w) => w.at < local - 0.005).length;
+if (n !== passed) { passed = n; awaitKey = '-'; render(true); }
+}
+function play(on) {
+if (on && t >= T - 0.01) seek(0);
+playing = on;
+$('.gp-play svg', root).innerHTML = on ? '<path d="M6 4h4v16H6zm8 0h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
+$('.gp-play', root).setAttribute('aria-label', on ? '멈춤' : '재생'); last = performance.now();
+}
+function tick(now) {
+if (playing && !scrub) {
+t += clamp((now - last) / 1000, 0, 0.25) * speed;
+const i = stepAt(t), ps = path.steps[i], s = STEP[ps.id];
+const w = clicksOf(ps, s)[i === idx ? passed : 0];
+if (w && t - starts[i] >= w.at) { t = starts[i] + w.at; play(false); }
+if (s.choose && !(s.id in chosen) && t - starts[i] >= WAIT_AT) { t = starts[i] + WAIT_AT; play(false); }
+if (t >= T) { t = T - 0.001; play(false); }
+render(false);
+}
+last = now; requestAnimationFrame(tick);
+}
+$('.gp-play', root).onclick = () => {
+if (awaiting) { nudge(); return; }
+const i = stepAt(t), s = STEP[path.steps[i].id];
+if (!playing && s.choose && !(s.id in chosen) && t - starts[i] >= WAIT_AT - 0.01) { choose(s.id, s.choose[0].key); return; }
+play(!playing);
+};
+$('.gp-prev', root).onclick = () => { const i = stepAt(t); seek(t - starts[i] > 1 ? starts[i] : starts[Math.max(0, i - 1)]); };
+$('.gp-next', root).onclick = () => { const i = stepAt(t); if (i < path.steps.length - 1) seek(starts[i + 1]); };
+$('.gp-spd', root).onclick = (e) => { speed = speed === 1 ? 1.5 : speed === 1.5 ? 2 : 1; e.currentTarget.textContent = speed + '×'; };
+track.addEventListener('pointerdown', (e) => { scrub = true; track.setPointerCapture(e.pointerId); seek(timeOfX(e.clientX)); });
+track.addEventListener('pointermove', (e) => {
+const x = timeOfX(e.clientX), i = stepAt(x), r = track.getBoundingClientRect();
+hover.textContent = (i + 1) + '. ' + STEP[path.steps[i].id].title;
+hover.style.left = clamp(e.clientX - r.left, 70, r.width - 70) + 'px';
+if (scrub) seek(x);
+});
+track.addEventListener('pointerup', () => { scrub = false; last = performance.now(); });
+document.addEventListener('keydown', (e) => {
+if (e.target.closest && e.target.closest('input,textarea,button')) return;
+const r = root.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return;
+if (e.code === 'Space') { e.preventDefault(); $('.gp-play', root).onclick(); }
+else if (e.key === 'ArrowRight') $('.gp-next', root).onclick(); else if (e.key === 'ArrowLeft') $('.gp-prev', root).onclick();
+});
+$('.gp-view', root).addEventListener('click', (e) => {
+if (awaiting && !e.target.closest('.gp-hit, .gp-tip')) nudge();
+});
+if (textList) textList.addEventListener('click', (e) => {
+const tab = e.target.closest('.gt-tabs button');
+if (tab) {
+const c = tab.closest('.gt-br').dataset.choice;
+chosen[c] = tab.dataset.k; pickPath(); wantPathChange = true; syncTabs();
+const i = path.steps.findIndex((st) => st.id === c);
+seek(starts[i + 1] != null ? starts[i + 1] + TIP_AT + 0.05 : starts[i]); play(false);
+return;
+}
+const li = e.target.closest('li[data-s]'); if (!li) return;
+const id = li.dataset.s;
+for (let br = li.closest('.gt-br'); br; br = br.parentElement.closest('.gt-br')) {
+const k = li.closest('ol[data-k]') && li.closest('ol[data-k]').dataset.k;
+if (k && chosen[br.dataset.choice] !== k) { chosen[br.dataset.choice] = k; pickPath(); wantPathChange = true; }
+break;
+}
+const i = path.steps.findIndex((st) => st.id === id);
+if (i < 0) return;
+seek(starts[i] + TIP_AT + 0.05); play(false);
+root.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+});
+new ResizeObserver(() => { view.classList.remove('moving'); camera(); if (idx >= 0) render(true); }).observe(view);
+pickPath();
+const m = location.hash.match(/^#s-([\w-]+)/);
+let startAt = 0;
+if (m && STEP[m[1]]) {
+const p = D.paths.find((x) => x.steps.some((st) => st.id === m[1]));
+if (p) { Object.assign(chosen, p.choices); pickPath(); startAt = starts[path.steps.findIndex((st) => st.id === m[1])] + TIP_AT + 0.05; }
+}
+seek(startAt); play(!m);
+if (m) root.scrollIntoView();
+requestAnimationFrame(tick);
+window.__guidePlayer = {
+at: (id, local) => { const i = path.steps.findIndex((st) => st.id === id); if (i < 0) return false; play(false); seek(starts[i] + local); return true; },
+choose: (id, key) => { chosen[id] = key; pickPath(); wantPathChange = true; syncTabs(); render(true); return path.key; },
+state: () => ({ t, T, path: path.key, step: path.steps[idx] && path.steps[idx].id, playing, chosen: { ...chosen }, awaiting: !!awaiting, passed }),
+};
+})();
+</script>
+
+</body>
+</html>
