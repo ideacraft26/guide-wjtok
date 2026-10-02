@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="원장톡">
+  <title>원장톡</title>
+  <!-- ★ 생성된 파일 — src/web/tools/gen_logo.py 가 만든다. 파비콘 · 앱 아이콘.
+       색은 카카오 옐로 #FEE500 · 카카오톡 갈색 #3C1E1E —
+       스킨을 따르지 않는다. 카카오톡 옆에 놓이는 물건이라 거기에 맞춘다.
+       말풍선은 갈색으로 채우고 점은 바탕 노랑으로 뚫는다 — 색이 둘뿐이라
+       16px 까지 내려가도 형태가 안 무너진다 -->
+  <rect width="512" height="512" rx="112" fill="#FEE500"/>
+  <g transform="translate(50.58 34.59) scale(4.1086)"><path d="M30.5,9 C13,10.5 7,23 7,42 C7,60 13,73.5 30,75 L41,75 C37.5,84 31,90.5 24,96 C39,93 51,85 57.5,75 L70,75 C87.5,73 93,60 93,41.5 C93,22 86.5,9.5 69.5,8.8 C56.5,8 43,8.2 30.5,9 Z" fill="#3C1E1E" stroke="#3C1E1E" stroke-width="10" stroke-linejoin="round"/><circle cx="31" cy="41.5" r="7.4" fill="#FEE500"/><circle cx="50.5" cy="42.2" r="7.4" fill="#FEE500"/><circle cx="70" cy="41.5" r="7.4" fill="#FEE500"/></g>
+</svg>
